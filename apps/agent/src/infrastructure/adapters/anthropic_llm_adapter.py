@@ -13,7 +13,10 @@ class AnthropicLLMAdapter(LLMPort):
     def __init__(self, api_key: str, available_tools_schema: Optional[List[dict]] = None):
         if not api_key or api_key == "test-api-key":
              logger.warning("No se proporcionó API key válida para Anthropic, el LLM fallará si se invoca.")
-        self.client = AsyncAnthropic(api_key=api_key)
+        self.client = AsyncAnthropic(
+            api_key=api_key,
+            default_headers={"anthropic-version": "2023-06-01"}
+        )
         self.available_tools_schema = available_tools_schema or []
 
     async def generate_response(self, system_prompt: str, messages: List[Message]) -> LLMResponse:
@@ -49,7 +52,7 @@ class AnthropicLLMAdapter(LLMPort):
 
         try:
             kwargs = {
-                "model": "claude-3-5-sonnet-20241022",
+                "model": "claude-3-haiku-20240307",
                 "max_tokens": 1024,
                 "system": system_prompt,
                 "messages": anthropic_messages,
