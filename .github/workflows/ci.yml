@@ -28,4 +28,4 @@ jobs:
     - name: Ejecutar Pruebas Automatizadas
       working-directory: ./packages/scraping-indexing
       run: |
-        pytest pruebas/
+        python -m pytest pruebas/
