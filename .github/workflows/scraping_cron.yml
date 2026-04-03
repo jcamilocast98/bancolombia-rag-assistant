@@ -29,9 +29,10 @@ jobs:
     - name: Ejecutar Extracción (Scraping)
       working-directory: ./packages/scraping-indexing
       env:
-        # Aquí puedes inyectar Secretos de Github para tus credenciales
+        # Aquí inyectas el API_KEY real:
         # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        PAGINAS_MAXIMAS: "10" # Un límite prudente para GitHub Actions
+        # Nota: Hereda paginas_maximas=50 desde los ajustes por defecto
+        PAGINAS_MAXIMAS: "50"
       run: |
         python -m src.scraping.main
 
