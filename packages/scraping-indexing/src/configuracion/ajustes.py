@@ -10,6 +10,7 @@ class Ajustes(BaseSettings):
     agente_usuario: str = Field("BancolombiaRAGBot/1.0", description="User-Agent para las peticiones HTTP")
     retraso_rastreo: float = Field(2.0, description="Retraso entre cada solicitud en segundos (rate limit)")
     paginas_maximas: int = Field(50, description="Número máximo de páginas que se pueden rastrear")
+    profundidad_maxima: int = Field(3, description="Nivel máximo de profundidad para explorar rutas")
     
     # Configuración de los Chunks
     tamano_chunk: int = Field(512, description="Tamaño máximo de cada fragmento textual")

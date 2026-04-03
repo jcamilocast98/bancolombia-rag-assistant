@@ -19,6 +19,7 @@ class Rastreador:
         self.dominio_base = urlparse(ajustes.url_base).netloc
         self.retraso = ajustes.retraso_rastreo
         self.paginas_maximas = ajustes.paginas_maximas
+        self.profundidad_maxima = ajustes.profundidad_maxima
         self._contador_rastreo = 0
 
     async def iniciar_base(self):
@@ -82,7 +83,7 @@ class Rastreador:
             
             enlaces_nuevos = self.extraer_enlaces(pagina.contenido_html, url)
             for nuevo_enlace in enlaces_nuevos:
-                if not self.cola.ha_sido_visitada(nuevo_enlace):
+                if not self.cola.ha_sido_visitada(nuevo_enlace) and trabajo.profundidad < self.profundidad_maxima:
                     self.cola.encolar(CrawlJob(url=nuevo_enlace, profundidad=trabajo.profundidad + 1))
             
             self._contador_rastreo += 1

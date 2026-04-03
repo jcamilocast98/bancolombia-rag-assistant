@@ -1,0 +1,60 @@
+name: Validar Pipeline (CI)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main, feature/* ]
+
+jobs:
+  test-scraping:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Descargar Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Entorno Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Instalar Dependencias (Scraping)
+      working-directory: ./packages/scraping-indexing
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Ejecutar Pruebas Automatizadas (Scraping)
+      working-directory: ./packages/scraping-indexing
+      run: |
+        python -m pytest pruebas/
+
+  test-agent:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Descargar Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Entorno Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Instalar Dependencias (Agent)
+      working-directory: ./apps/agent
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Se comenta la ejecución de tests si no hemos escrito tests todavía para el agente,
+    # pero preparamos el mapeo del secreto desde GitHub
+    - name: Validar Sintaxis Agente (Lint/Check)
+      working-directory: ./apps/agent
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        API_KEY: "test-ci-key"
+      run: |
+        # Verificamos que fastapi importe correctamente (prueba mínima de dependencias rotas)
+        python -c "from src.interfaces.main import app; print('Carga Exitosa de la APP')"

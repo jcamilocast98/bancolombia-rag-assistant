@@ -1,0 +1,42 @@
+name: Ejecutar Scraping & Indexación
+
+on:
+  # Permite ejecutarlo manualmente desde la pestaña "Actions"
+  workflow_dispatch:
+  # Ejemplo de cron: Ejecutar todos los domingos a la media noche (UTC)
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Descargar Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Entorno Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Instalar Dependencias
+      working-directory: ./packages/scraping-indexing
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Ejecutar Extracción (Scraping)
+      working-directory: ./packages/scraping-indexing
+      env:
+        # Aquí inyectas el API_KEY real:
+        # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        # Nota: Hereda paginas_maximas=50 desde los ajustes por defecto
+        PAGINAS_MAXIMAS: "50"
+      run: |
+        python -m src.scraping.main
+
+    - name: Ejecutar Indexación
+      working-directory: ./packages/scraping-indexing
+      run: |
+        python -m src.indexacion.main

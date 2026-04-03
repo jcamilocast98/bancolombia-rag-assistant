@@ -28,11 +28,16 @@ class ExtractorContenido:
                     except Exception as e:
                         raise ErrorProcesamientoHTML(f"Fallo al procesar el título de {url}: {e}")
                 
+                # Derivar una categoría básica desde la URL (e.g. bancolombia.com/personas/creditos -> creditos)
+                partes_url = [p for p in urlparse(str(respuesta.url)).path.split('/') if p]
+                categoria = partes_url[1] if len(partes_url) > 1 else partes_url[0] if partes_url else "general"
+
                 return Pagina(
                     url=str(respuesta.url),
                     titulo=titulo,
                     contenido_html=respuesta.text,
-                    codigo_estado=respuesta.status_code
+                    codigo_estado=respuesta.status_code,
+                    categoria=categoria
                 )
         except httpx.RequestError as e:
             raise ErrorExtraccionContenido(f"Petición HTTP fallida para {url}: {e}")
