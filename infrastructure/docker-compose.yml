@@ -1,0 +1,230 @@
+version: "3.9"
+
+services:
+  # ============================================
+  # 🗄️ PostgreSQL + pgvector
+  # ============================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bancolombia_rag}
+      POSTGRES_USER: ${POSTGRES_USER:-raguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-raguser} -d ${POSTGRES_DB:-bancolombia_rag}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ============================================
+  # 📨 Redis (Cola de mensajes)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ============================================
+  # 📦 MinIO (Storage S3-compatible)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: rag-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🌐 Frontend (Angular)
+  # ============================================
+  frontend:
+    build:
+      context: ../apps/frontend
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    environment:
+      - API_URL=${FRONTEND_API_URL:-http://localhost:8000}
+    depends_on:
+      agent:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🤖 Agent (Orquestador LLM + Cliente MCP)
+  # ============================================
+  agent:
+    build:
+      context: ../apps/agent
+      dockerfile: Dockerfile
+    container_name: rag-agent
+    restart: unless-stopped
+    ports:
+      - "${AGENT_API_PORT:-8000}:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
+      - POSTGRES_USER=${POSTGRES_USER:-raguser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - MCP_SERVER_URL=http://mcp-server:8001
+      - AGENT_CORS_ORIGINS=${AGENT_CORS_ORIGINS:-http://localhost:4200}
+      - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🔧 MCP Server (Servidor MCP RAG)
+  # ============================================
+  mcp-server:
+    build:
+      context: ../apps/mcp-server
+      dockerfile: Dockerfile
+    container_name: rag-mcp-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_SERVER_PORT:-8001}:8001"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
+      - POSTGRES_USER=${POSTGRES_USER:-raguser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-stdio}
+      - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🕷️ Scraping & Indexing (Job / Worker)
+  # ============================================
+  scraping-indexing:
+    build:
+      context: ../packages/scraping-indexing
+      dockerfile: Dockerfile
+    container_name: rag-scraping
+    restart: "no"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
+      - POSTGRES_USER=${POSTGRES_USER:-raguser}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-raw-html}
+      - SCRAPING_BASE_URL=${SCRAPING_BASE_URL:-https://www.bancolombia.com/personas}
+      - SCRAPING_MAX_PAGES=${SCRAPING_MAX_PAGES:-500}
+      - SCRAPING_DELAY_SECONDS=${SCRAPING_DELAY_SECONDS:-2}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - CHUNK_SIZE=${CHUNK_SIZE:-512}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-64}
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🗂️ pgAdmin (Database Management UI)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rag-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@bancolombia-rag.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  rag-network:
+    driver: bridge
+    name: bancolombia-rag-network

@@ -1,0 +1,2 @@
+/* Chat feature placeholder */
+export {};

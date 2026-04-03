@@ -1,0 +1,70 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.env
+*.env.local
+
+# ===========================
+# Node / Angular
+# ===========================
+node_modules/
+.angular/
+dist/
+tmp/
+.sass-cache/
+.npm
+*.tgz
+.pnp.*
+
+# ===========================
+# IDEs
+# ===========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===========================
+# Docker
+# ===========================
+*.log
+docker-compose.override.yml
+
+# ===========================
+# Testing
+# ===========================
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.nyc_output/
+
+# ===========================
+# OS
+# ===========================
+.DS_Store
+*.bak
+*.tmp
+
+# ===========================
+# Project Specific
+# ===========================
+infrastructure/.env
+packages/scraping-indexing/data/
+*.db
+PROMPT.md

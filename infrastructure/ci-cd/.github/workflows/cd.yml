@@ -1,0 +1,48 @@
+name: CD — Deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  deploy:
+    name: "Deploy to ${{ github.event.inputs.environment || 'staging' }}"
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images
+        run: |
+          echo "🚀 Building and pushing images..."
+          echo "Environment: ${{ github.event.inputs.environment || 'staging' }}"
+          # TODO: Implementar build y push de imágenes
+          # docker-compose -f infrastructure/docker-compose.yml build
+          # docker-compose -f infrastructure/docker-compose.yml push
+
+      - name: Deploy
+        run: |
+          echo "🚀 Deploying to ${{ github.event.inputs.environment || 'staging' }}..."
+          # TODO: Implementar deploy según el proveedor de cloud elegido

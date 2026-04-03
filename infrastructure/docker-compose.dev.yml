@@ -1,0 +1,30 @@
+# docker-compose.dev.yml
+# Override para desarrollo local — montar código fuente como volúmenes
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: "3.9"
+
+services:
+  agent:
+    build:
+      target: development
+    volumes:
+      - ../apps/agent/src:/app/src
+    command: uvicorn src.interfaces.main:app --reload --host 0.0.0.0 --port 8000
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  mcp-server:
+    build:
+      target: development
+    volumes:
+      - ../apps/mcp-server/src:/app/src
+    command: uvicorn src.interfaces.main:app --reload --host 0.0.0.0 --port 8001
+    environment:
+      - LOG_LEVEL=DEBUG
+
+  scraping-indexing:
+    volumes:
+      - ../packages/scraping-indexing/src:/app/src
+    environment:
+      - LOG_LEVEL=DEBUG

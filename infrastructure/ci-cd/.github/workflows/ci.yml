@@ -1,0 +1,125 @@
+name: CI — Lint, Test & Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  # ============================================
+  # 🐍 Python Services (Agent, MCP Server, Scraping)
+  # ============================================
+  python-lint-test:
+    name: "Python — Lint & Test"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - apps/agent
+          - apps/mcp-server
+          - packages/scraping-indexing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: "${{ matrix.service }}/requirements.txt"
+
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest pytest-cov pytest-asyncio
+
+      - name: Lint with Ruff
+        run: |
+          cd ${{ matrix.service }}
+          ruff check src/ --output-format=github
+          ruff format src/ --check
+
+      - name: Run tests
+        run: |
+          cd ${{ matrix.service }}
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+        env:
+          PYTHONPATH: ${{ matrix.service }}
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.service }}/coverage.xml
+
+  # ============================================
+  # 🅰️ Angular Frontend
+  # ============================================
+  frontend-lint-test:
+    name: "Angular — Lint & Test"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "apps/frontend/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd apps/frontend
+          npm ci
+
+      - name: Lint
+        run: |
+          cd apps/frontend
+          npm run lint
+
+      - name: Run tests
+        run: |
+          cd apps/frontend
+          npm run test -- --watch=false --code-coverage --browsers=ChromeHeadless
+
+      - name: Build production
+        run: |
+          cd apps/frontend
+          npm run build -- --configuration=production
+
+  # ============================================
+  # 🐳 Docker Build Verification
+  # ============================================
+  docker-build:
+    name: "Docker — Build Images"
+    runs-on: ubuntu-latest
+    needs: [python-lint-test, frontend-lint-test]
+    strategy:
+      matrix:
+        service:
+          - { context: "apps/frontend", name: "frontend" }
+          - { context: "apps/agent", name: "agent" }
+          - { context: "apps/mcp-server", name: "mcp-server" }
+          - { context: "packages/scraping-indexing", name: "scraping" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          push: false
+          tags: bancolombia-rag/${{ matrix.service.name }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
