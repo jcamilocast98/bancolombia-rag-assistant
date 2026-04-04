@@ -28,6 +28,7 @@ export class ChatComponent implements OnInit {
   
   messages: Message[] = [];
   sessionId: string = crypto.randomUUID(); // Generar ID único para la sesión
+  isLoading: boolean = false;
   
   ngOnInit() {
     // Suscribirse al historial local (ya incluye el mensaje de bienvenida)
@@ -37,21 +38,18 @@ export class ChatComponent implements OnInit {
   }
 
   handleNewMessage(content: string) {
-    if (!content.trim()) return;
+    if (!content.trim() || this.isLoading) return;
 
-    // La interfaz se actualiza automáticamente por la suscripción a getHistory()
-    // en cuanto el ApiClientService despacha la petición POST.
-
+    this.isLoading = true;
     this.chatService.sendMessage({
       session_id: this.sessionId,
       message: content
     }).subscribe({
       next: () => {
-        // La respuesta ya se añadió al history y UI se actualizó
+        this.isLoading = false;
       },
       error: (err: any) => {
-        // En caso de error, mostramos un mensaje de sistema temporal si lo deseamos
-        // El ErrorInterceptor ya muestra un SnackBar.
+        this.isLoading = false;
       }
     });
   }

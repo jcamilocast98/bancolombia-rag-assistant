@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
+    gemini_chat_model: str = "gemini-2.5-flash"
     
     # MCP Configuration
     mcp_transport: str = "sse"  # "stdio" o "sse"
