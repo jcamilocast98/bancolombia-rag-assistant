@@ -6,7 +6,8 @@ pydantic-settings
 python-dotenv
 
 # ---- MCP Server ----
-mcp
+mcp[fastapi]>=1.3.0
+sse-starlette>=2.1.3
 
 # ---- Embeddings (Gemini) ----
 google-genai

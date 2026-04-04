@@ -1,6 +1,7 @@
 import logging
 from typing import List
 from google import genai
+from google.genai import types
 from src.domain.ports.embedding_port import EmbeddingPort
 from src.domain.exceptions.embedding_exceptions import EmbeddingGenerationError
 from src.infrastructure.config.settings import settings
@@ -10,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 class GeminiEmbeddingAdapter(EmbeddingPort):
     """
-    Adaptador de embeddings usando Gemini (text-embedding-004).
-    Genera vectores de 768 dimensiones (nativo de Gemini).
+    Adaptador de embeddings usando Gemini (gemini-embedding-001).
+    Genera vectores de 768 dimensiones (reducido desde 3072 nativo).
     """
 
     def __init__(self):
@@ -29,6 +30,7 @@ class GeminiEmbeddingAdapter(EmbeddingPort):
             result = self._client.models.embed_content(
                 model=settings.embedding_model,
                 contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768),
             )
             embedding = result.embeddings[0].values
             logger.info(f"[GeminiEmbed] Embedding generado ({len(embedding)} dims) para: '{text[:50]}...'")

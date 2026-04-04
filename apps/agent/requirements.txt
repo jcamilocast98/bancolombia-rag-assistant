@@ -10,11 +10,11 @@ anthropic>=0.28.1
 google-genai
 
 # ---- MCP Client ----
-mcp>=1.0.0
+mcp[sse]>=1.3.0
 
 # ---- Database ----
 sqlalchemy[asyncio]>=2.0.31
-# asyncpg # Removido temporalmente para habilitar ejecución en Windows puro, SQLite será usado
+asyncpg>=0.29.0 # Necesario para el HCP Server lanzado vía stdio
 alembic
 aiosqlite
 

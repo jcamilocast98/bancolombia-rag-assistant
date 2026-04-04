@@ -16,9 +16,16 @@ class Ajustes(BaseSettings):
     tamano_chunk: int = Field(512, description="Tamaño máximo de cada fragmento textual")
     solapamiento_chunk: int = Field(64, description="Margen de solape (overlap) entre chunks consecutivos")
 
-    # Proveedor de Embeddings (OpenAI)
+    # Proveedor de Embeddings — Gemini (por defecto) u OpenAI (legacy)
+    proveedor_embeddings: str = Field("gemini", description="Proveedor: 'gemini' o 'openai'")
+    
+    # Gemini
+    clave_api_gemini: str = Field("", description="Clave de la API de Google Gemini")
+    modelo_embedding_gemini: str = Field("text-embedding-004", description="Modelo Gemini para embeddings (768 dims)")
+    
+    # OpenAI (legacy)
     clave_api_openai: str = Field("llave-falsa", description="Clave de la API de OpenAI")
-    modelo_embedding: str = Field("text-embedding-3-small", description="Modelo usado para las incrustaciones (embeddings)")
+    modelo_embedding: str = Field("text-embedding-3-small", description="Modelo OpenAI para embeddings (1536 dims)")
     tamano_lote_embedding: int = Field(100, description="Cantidad de chunks a procesar por cada llamada a la API")
 
     # Almacenamiento crudo (MinIO/S3)

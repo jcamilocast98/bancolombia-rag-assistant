@@ -11,7 +11,7 @@ class VectorType(UserDefinedType):
     """
     cache_ok = True
 
-    def __init__(self, dim: int = 1536):
+    def __init__(self, dim: int = 768):
         self.dim = dim
 
     def get_col_spec(self):
@@ -48,7 +48,7 @@ class ChunkModel(Base):
     chunk_id = Column(String(64), unique=True, index=True, nullable=False)
     url = Column(String(512), index=True, nullable=False)
     content = Column(Text, nullable=False)
-    embedding = Column(VectorType(1536))  # 1536 dimensiones para text-embedding-3-small
+    embedding = Column(VectorType(768))  # 768 dimensiones para text-embedding-004 (Gemini)
     metadata_json = Column(JSON, server_default='{}')
     created_at = Column(DateTime, server_default=func.now())
 
