@@ -48,7 +48,8 @@ AVAILABLE_TOOLS = [
 
 # Creamos el adapter con las API Keys correspondientes de Gemini
 llm_adapter = GeminiLLMAdapter(
-    api_key=settings.gemini_api_key, 
+    api_key=settings.gemini_api_key,
+    model_name=settings.gemini_chat_model,
     available_tools_schema=AVAILABLE_TOOLS
 )
 tool_dispatcher = ToolDispatcher(mcp_adapter)

@@ -73,14 +73,18 @@ async def ejecutar_pipeline():
     almacenamiento = AdaptadorAlmacenamientoS3()
     bd_vectorial = AdaptadorPgVector()
 
-    # Usar embeddings simulados si no hay API Key de OpenAI
-    if ajustes.clave_api_openai and ajustes.clave_api_openai != "llave-falsa":
+    # Seleccionar proveedor de embeddings según configuración
+    if ajustes.proveedor_embeddings == "gemini" and ajustes.clave_api_gemini:
+        from src.infraestructura.adaptador_embeddings_gemini import AdaptadorEmbeddingsGemini
+        embeddings = AdaptadorEmbeddingsGemini()
+        logger.info("  → Embeddings: Gemini (Reales)")
+    elif ajustes.proveedor_embeddings == "openai" and ajustes.clave_api_openai and ajustes.clave_api_openai != "llave-falsa":
         from src.infraestructura.adaptador_embeddings_openai import AdaptadorEmbeddingsOpenAI
         embeddings = AdaptadorEmbeddingsOpenAI()
         logger.info("  → Embeddings: OpenAI (Reales)")
     else:
         embeddings = AdaptadorEmbeddingsSimulado()
-        logger.info("  → Embeddings: Simulados (configurar OPENAI_API_KEY para reales)")
+        logger.info("  → Embeddings: Simulados (configurar CLAVE_API_GEMINI o CLAVE_API_OPENAI para reales)")
 
     logger.info("  → Cola:            Redis (rag-redis)")
     logger.info("  → Almacenamiento:  MinIO S3 (rag-minio)")

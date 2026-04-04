@@ -12,11 +12,12 @@ from ...domain.exceptions.llm_exceptions import LLMProviderError
 logger = logging.getLogger(__name__)
 
 class GeminiLLMAdapter(LLMPort):
-    def __init__(self, api_key: Optional[str] = None, available_tools_schema: Optional[List[dict]] = None):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash-latest", available_tools_schema: Optional[List[dict]] = None):
         if not api_key or api_key == "test-api-key":
              logger.warning("No se proporcionó API key válida para Gemini. El cliente no se inicializará.")
         
         self._api_key = api_key
+        self._model_name = model_name
         self._client = None
         self.available_tools_schema = available_tools_schema or []
 
@@ -115,7 +116,7 @@ class GeminiLLMAdapter(LLMPort):
             # Using the sync client since 'async' methods might not be fully exposed transparently
             # or `aio` client is separate. For this technical test, we wrap the call.
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=self._model_name,
                 contents=contents,
                 config=config
             )

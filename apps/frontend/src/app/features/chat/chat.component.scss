@@ -1,0 +1,79 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  background-color: #f5f7f9;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: #002855; /* Bancolombia Blue */
+  color: #ffffff;
+  border-bottom: 4px solid #FDDA24; /* Bancolombia Yellow */
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  background: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.header-logo img {
+  width: 100%;
+  height: auto;
+}
+
+.header-titles h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-titles p {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background-color: #f9fbfd;
+}
+
+.messages-inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.chat-footer {
+  padding: 16px 24px;
+  background: #ffffff;
+  border-top: 1px solid #e9ecef;
+}
+
+.footer-legend {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  margin-top: 12px;
+}

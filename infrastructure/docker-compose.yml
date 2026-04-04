@@ -2,7 +2,8 @@ version: "3.9"
 
 services:
   # ============================================
-  # 🗄️ PostgreSQL + pgvector
+  # 🗄️ PostgreSQL + pgvector (Adaptador de Persistencia)
+  # Capa: Infraestructura — Base de Datos Vectorial
   # ============================================
   postgres:
     image: pgvector/pgvector:pg16
@@ -25,7 +26,8 @@ services:
       - rag-network
 
   # ============================================
-  # 📨 Redis (Cola de mensajes)
+  # 📨 Redis (Adaptador de Cola de Mensajes)
+  # Capa: Infraestructura — Puerto de Cola
   # ============================================
   redis:
     image: redis:7-alpine
@@ -44,7 +46,8 @@ services:
       - rag-network
 
   # ============================================
-  # 📦 MinIO (Storage S3-compatible)
+  # 📦 MinIO (Adaptador de Almacenamiento S3)
+  # Capa: Infraestructura — Puerto de Almacenamiento
   # ============================================
   minio:
     image: minio/minio:latest
@@ -68,7 +71,148 @@ services:
       - rag-network
 
   # ============================================
-  # 🌐 Frontend (Angular)
+  # 🤖 Agent (Orquestador LLM + Cliente MCP)
+  # Capa: Interfaces → Aplicación → Dominio
+  # Puertos: LLMPort, MCPClientPort, MemoryPort
+  # ============================================
+  agent:
+    build:
+      context: ../apps/agent
+      dockerfile: Dockerfile
+    container_name: rag-agent
+    restart: unless-stopped
+    ports:
+      - "${AGENT_API_PORT:-8000}:8000"
+    environment:
+      # ── Puertos del Dominio (inyectados como adaptadores) ──
+      # Adaptador LLM: GeminiLLMAdapter
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Adaptador MCP: MCPClientAdapter (transporte SSE hacia el servidor MCP)
+      - MCP_TRANSPORT=sse
+      - MCP_SSE_URL=http://mcp-server:8001/sse
+      # Adaptador de Memoria: PostgresMemoryAdapter (historial conversacional)
+      # Usa SQLite local en el contenedor para persistencia ligera del historial
+      - DATABASE_URL=sqlite+aiosqlite:///./agent.db
+      # ── Seguridad (API Key para el endpoint REST) ──
+      - API_KEY=${AGENT_API_KEY:-mi-api-key-segura-123}
+      # ── Observabilidad ──
+      - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🔧 MCP Server (Servidor MCP RAG)
+  # Capa: Interfaces (MCP Protocol) → Aplicación → Dominio
+  # Puertos: VectorDBPort, EmbeddingPort
+  # ============================================
+  mcp-server:
+    build:
+      context: ../apps/mcp-server
+      dockerfile: Dockerfile
+    container_name: rag-mcp-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_SERVER_PORT:-8001}:8001"
+    environment:
+      # ── Puertos del Dominio (inyectados como adaptadores) ──
+      # Adaptador de Embeddings: GeminiEmbeddingAdapter
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-gemini-embedding-001}
+      # Adaptador de BD Vectorial: PgVectorAdapter (asyncpg directo)
+      - DATABASE_URL=postgresql://raguser:changeme@postgres:5432/bancolombia_rag
+      # ── Configuración del transporte MCP ──
+      - MCP_TRANSPORT=sse
+      # ── Observabilidad ──
+      - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🕷️ Scraping & Indexing (Job / Worker)
+  # Capa: Pipeline → Dominio (Scraping + Indexación)
+  # Puertos: PuertoCola, PuertoAlmacenamiento, PuertoBdVectorial, PuertoEmbeddings
+  # ============================================
+  scraping-indexing:
+    build:
+      context: ../packages/scraping-indexing
+      dockerfile: Dockerfile
+    container_name: rag-scraping
+    restart: "no"
+    command: ["python", "-m", "src.pipeline"]
+    environment:
+      # ── Puertos del Dominio (nombres alineados con ajustes.py / pydantic-settings) ──
+      # Adaptador de Embeddings: AdaptadorEmbeddingsGemini
+      - PROVEEDOR_EMBEDDINGS=gemini
+      - CLAVE_API_GEMINI=${GEMINI_API_KEY}
+      - MODELO_EMBEDDING_GEMINI=${MODELO_EMBEDDING_GEMINI:-text-embedding-004}
+      # Adaptador de Cola: AdaptadorColaRedis
+      - URL_REDIS=redis://redis:6379/0
+      # Adaptador de Almacenamiento: AdaptadorAlmacenamientoS3
+      - ENDPOINT_S3=minio:9000
+      - CLAVE_ACCESO_S3=${S3_ACCESS_KEY:-minioadmin}
+      - CLAVE_SECRETA_S3=${S3_SECRET_KEY:-minioadmin}
+      - BUCKET_S3=${BUCKET_S3:-bancolombia-raw-html}
+      # Adaptador de BD Vectorial: AdaptadorPgVector
+      - URL_BASE_DATOS=postgresql+asyncpg://raguser:changeme@postgres:5432/bancolombia_rag
+      # ── Configuración de Scraping (Dominio) ──
+      - URL_BASE=${SCRAPING_BASE_URL:-https://www.bancolombia.com/personas}
+      - PAGINAS_MAXIMAS=${SCRAPING_MAX_PAGES:-50}
+      - RETRASO_RASTREO=${SCRAPING_DELAY_SECONDS:-2}
+      # ── Configuración de Chunks (Dominio) ──
+      - TAMANO_CHUNK=${CHUNK_SIZE:-512}
+      - SOLAPAMIENTO_CHUNK=${CHUNK_OVERLAP:-64}
+      # ── Observabilidad ──
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🗂️ pgAdmin (Herramienta de Administración — solo desarrollo)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rag-pgadmin
+    restart: unless-stopped
+    profiles:
+      - dev-tools
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@bancolombia-rag.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+  # ============================================
+  # 🌐 Frontend (Interfaz de Usuario)
   # ============================================
   frontend:
     build:
@@ -86,130 +230,8 @@ services:
     networks:
       - rag-network
 
-  # ============================================
-  # 🤖 Agent (Orquestador LLM + Cliente MCP)
-  # ============================================
-  agent:
-    build:
-      context: ../apps/agent
-      dockerfile: Dockerfile
-    container_name: rag-agent
-    restart: unless-stopped
-    ports:
-      - "${AGENT_API_PORT:-8000}:8000"
-    environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
-      - POSTGRES_USER=${POSTGRES_USER:-raguser}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - MCP_TRANSPORT=sse
-      - MCP_SSE_URL=http://mcp-server:8001/sse
-      - AGENT_CORS_ORIGINS=${AGENT_CORS_ORIGINS:-http://localhost:4200}
-      - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mcp-server:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      - rag-network
-
-  # ============================================
-  # 🔧 MCP Server (Servidor MCP RAG)
-  # ============================================
-  mcp-server:
-    build:
-      context: ../apps/mcp-server
-      dockerfile: Dockerfile
-    container_name: rag-mcp-server
-    restart: unless-stopped
-    ports:
-      - "${MCP_SERVER_PORT:-8001}:8001"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DATABASE_URL=postgresql://raguser:changeme@postgres:5432/bancolombia_rag
-      - MCP_TRANSPORT=${MCP_TRANSPORT:-stdio}
-      - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    networks:
-      - rag-network
-
-  # ============================================
-  # 🕷️ Scraping & Indexing (Job / Worker)
-  # ============================================
-  scraping-indexing:
-    build:
-      context: ../packages/scraping-indexing
-      dockerfile: Dockerfile
-    container_name: rag-scraping
-    restart: "no"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
-      - POSTGRES_USER=${POSTGRES_USER:-raguser}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - S3_ENDPOINT=http://minio:9000
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
-      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-raw-html}
-      - SCRAPING_BASE_URL=${SCRAPING_BASE_URL:-https://www.bancolombia.com/personas}
-      - SCRAPING_MAX_PAGES=${SCRAPING_MAX_PAGES:-500}
-      - SCRAPING_DELAY_SECONDS=${SCRAPING_DELAY_SECONDS:-2}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
-      - CHUNK_SIZE=${CHUNK_SIZE:-512}
-      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-64}
-      - LOG_LEVEL=INFO
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    networks:
-      - rag-network
-
-  # ============================================
-  # 🗂️ pgAdmin (Database Management UI)
-  # ============================================
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: rag-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@bancolombia-rag.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - rag-network
-
 # ============================================
-# Volumes
+# Volumes (Capa de Infraestructura Persistente)
 # ============================================
 volumes:
   postgres_data:
@@ -220,7 +242,7 @@ volumes:
     driver: local
 
 # ============================================
-# Networks
+# Networks (Red interna del sistema)
 # ============================================
 networks:
   rag-network:

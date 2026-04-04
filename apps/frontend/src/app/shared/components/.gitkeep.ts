@@ -1,2 +1,0 @@
-/* Shared components placeholder */
-export {};

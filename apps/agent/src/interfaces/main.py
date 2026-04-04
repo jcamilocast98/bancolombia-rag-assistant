@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     # Setup DB
     async with engine.begin() as conn:
         # Create tables locally (In prod should use alembic)
+        # SQLAlchemy create_all is generally safe, but we use run_sync
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database asíncrona iniciada y tablas verificadas.")
     yield
