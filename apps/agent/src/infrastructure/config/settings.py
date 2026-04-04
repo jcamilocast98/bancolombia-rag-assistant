@@ -7,10 +7,12 @@ class Settings(BaseSettings):
     
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
+    
+    # MCP Configuration
+    mcp_transport: str = "sse"  # "stdio" o "sse"
+    mcp_sse_url: str = "http://mcp-server:8001/sse"
     mcp_server_command: str = "python"
-    mcp_server_args: str = "-m;scraping_indexing.server"
-    mcp_transport: str = "stdio" # stdio o sse
-    mcp_sse_url: str = ""
+    mcp_server_args: str = "src/interfaces/main.py"
     
     database_url: str = "sqlite+aiosqlite:///./agent.db"
     

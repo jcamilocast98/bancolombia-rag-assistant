@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # Gemini (embeddings + LLM)
     gemini_api_key: str = ""
-    embedding_model: str = "text-embedding-004"
+    embedding_model: str = "gemini-embedding-001"
 
     # MCP
     mcp_transport: str = "stdio"
