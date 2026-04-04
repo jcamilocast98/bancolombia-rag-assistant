@@ -1,0 +1,37 @@
+<div class="chat-container">
+  
+  <!-- Encabezado de la Conversación -->
+  <header class="chat-header">
+    <div class="header-logo">
+      <img src="assets/bancolombia-logo.svg" alt="Bancolombia" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkREQTI0IiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PC9zdmc+'" />
+    </div>
+    <div class="header-titles">
+      <h1>Asistente Virtual IA</h1>
+      <p>Centro de Ayuda y Conocimiento</p>
+    </div>
+  </header>
+
+  <!-- Área principal de mensajes -->
+  <main class="chat-messages" appAutoScroll [appAutoScroll]="messages.length">
+    <div class="messages-inner">
+      <ng-container *ngFor="let msg of messages">
+        <app-message-bubble [message]="msg"></app-message-bubble>
+      </ng-container>
+      
+      <!-- Indicador de carga cuando se espera la respuesta -->
+      <app-typing-indicator *ngIf="loadingService.isLoading()"></app-typing-indicator>
+    </div>
+  </main>
+
+  <!-- Zona de captura de input del usuario -->
+  <footer class="chat-footer">
+    <app-chat-input 
+      [disabled]="loadingService.isLoading()" 
+      (onSubmit)="handleNewMessage($event)">
+    </app-chat-input>
+    <div class="footer-legend">
+      Juan Camilo Castro Hincapie. Proceso de Selección 59034 · Bancolombia · Área Tecnología e IA TI ·
+    </div>
+  </footer>
+
+</div>

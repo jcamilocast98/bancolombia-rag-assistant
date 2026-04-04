@@ -16,6 +16,7 @@ tiktoken
 
 # ---- Embeddings ----
 openai
+google-genai
 
 # ---- Queue ----
 redis
