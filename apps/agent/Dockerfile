@@ -23,8 +23,8 @@ FROM base AS production
 
 COPY src/ ./src/
 
-# Crear usuario no-root
-RUN useradd --create-home appuser
+# Crear usuario no-root y asegurar permisos de escritura para bases de datos locales
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000

@@ -133,7 +133,7 @@ Este proyecto implementa un **Asistente Virtual Inteligente** basado en la arqui
 │   │   ├── src/
 │   │   │   ├── domain/            # Entidades, value objects, puertos (interfaces)
 │   │   │   ├── application/       # Casos de uso, servicios de aplicación
-│   │   │   ├── infrastructure/    # Adaptadores (LLM, MCP client, DB)
+│   │   │   ├── infrastructure/    # Adaptadores (GeminiLLMAdapter, AnthropicLLMAdapter, MCP, DB)
 │   │   │   └── interfaces/       # Controladores FastAPI (API layer)
 │   │   ├── tests/
 │   │   ├── Dockerfile
@@ -292,14 +292,14 @@ python -m src.indexing.main  # Ejecutar indexación
 | Tipado           | Esquemas JSON tipados para tools y resources                                  |
 | Extensibilidad   | Fácil adición de nuevas herramientas sin modificar el agente                 |
 
-### 5. LLM: Claude 3.5 Sonnet (vía API Anthropic)
+### 5. LLM: Gemini 2.5 Flash / Claude 3.5 Sonnet (Adaptadores Flexibles)
 
 | Criterio         | Justificación                                                                 |
 |-----------------|-------------------------------------------------------------------------------|
-| Razonamiento     | Superior en tareas de síntesis y citación de fuentes                          |
-| Tool Use         | Soporte nativo para function calling / tool use                               |
-| Contexto         | 200K tokens — permite historial extenso de conversación                       |
-| Costo            | Competitivo para volumen esperado de la prueba técnica                        |
+| Flexibilidad Hexagonal| Capacidad de intercambiar el "Cerebro" (Anthropic/Google) ajustando 1 sola línea de código |
+| Tool Use         | Soporte nativo para function calling / tool use en ambas plataformas                          |
+| Resiliencia      | Alta disponibilidad y evasión de bloqueos comerciales (Límites de Free Tier)                 |
+| Costo            | Gemini ofrece un Tier 100% gratuito generoso (`gemini-1.5-flash` / `gemini-2.5-flash`), optimizando costos |
 
 ---
 
@@ -354,7 +354,8 @@ Consultar `infrastructure/.env.example` para la lista completa. Variables críti
 
 | Variable                   | Descripción                              | Requerida |
 |---------------------------|------------------------------------------|-----------|
-| `ANTHROPIC_API_KEY`       | API Key de Anthropic para Claude         | ✅        |
+| `ANTHROPIC_API_KEY`       | API Key de Anthropic para Claude         | ✅ (Si se usa) |
+| `GEMINI_API_KEY`          | API Key de Google (Gemini GenAI)         | ✅ (Si se usa) |
 | `OPENAI_API_KEY`          | API Key de OpenAI para Embeddings        | ✅        |
 | `POSTGRES_HOST`           | Host de PostgreSQL + pgvector            | ✅        |
 | `POSTGRES_DB`             | Nombre de la base de datos               | ✅        |
