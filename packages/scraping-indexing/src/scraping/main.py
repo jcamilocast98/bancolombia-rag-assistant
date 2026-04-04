@@ -1,7 +1,7 @@
 import asyncio
 
-from src.infraestructura.adaptador_cola_simulada import AdaptadorColaSimulada
-from src.infraestructura.adaptador_almacenamiento_simulado import AdaptadorAlmacenamientoSimulado
+from src.infraestructura.adaptador_cola_redis import AdaptadorColaRedis
+from src.infraestructura.adaptador_almacenamiento_s3 import AdaptadorAlmacenamientoS3
 from src.scraping.lector_robots import LectorRobots
 from src.scraping.rastreador import Rastreador
 from src.scraping.gestor_almacenamiento import GestorAlmacenamiento
@@ -10,8 +10,8 @@ async def main():
     print("[Tubería de Scraping] Inicializando...")
     
     # 1. Iniciar adaptadores
-    cola = AdaptadorColaSimulada()
-    almacenamiento = AdaptadorAlmacenamientoSimulado()
+    cola = AdaptadorColaRedis()
+    almacenamiento = AdaptadorAlmacenamientoS3()
     
     # 2. Iniciar componentes
     lector_robots = LectorRobots()

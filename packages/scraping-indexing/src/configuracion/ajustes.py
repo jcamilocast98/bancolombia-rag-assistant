@@ -31,6 +31,6 @@ class Ajustes(BaseSettings):
     url_redis: str = Field("redis://localhost:6379/0")
 
     # Base de datos Vectorial (pgvector)
-    url_base_datos: str = Field("postgresql+asyncpg://usuario:clave@localhost:5432/bdvectorial")
+    url_base_datos: str = Field("postgresql+asyncpg://raguser:changeme@localhost:5432/bancolombia_rag")
 
 ajustes = Ajustes()
