@@ -212,23 +212,23 @@ services:
       - rag-network
 
   # ============================================
-  # 🌐 Frontend (Se construirá después del E2E)
+  # 🌐 Frontend (Interfaz de Usuario)
   # ============================================
-  # frontend:
-  #   build:
-  #     context: ../apps/frontend
-  #     dockerfile: Dockerfile
-  #   container_name: rag-frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "${FRONTEND_PORT:-4200}:80"
-  #   environment:
-  #     - API_URL=${FRONTEND_API_URL:-http://localhost:8000}
-  #   depends_on:
-  #     agent:
-  #       condition: service_healthy
-  #   networks:
-  #     - rag-network
+  frontend:
+    build:
+      context: ../apps/frontend
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    environment:
+      - API_URL=${FRONTEND_API_URL:-http://localhost:8000}
+    depends_on:
+      agent:
+        condition: service_healthy
+    networks:
+      - rag-network
 
 # ============================================
 # Volumes (Capa de Infraestructura Persistente)

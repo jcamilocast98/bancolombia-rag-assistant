@@ -30,21 +30,10 @@ export class ChatComponent implements OnInit {
   sessionId: string = crypto.randomUUID(); // Generar ID único para la sesión
   
   ngOnInit() {
-    // Suscribirse al historial local
+    // Suscribirse al historial local (ya incluye el mensaje de bienvenida)
     this.chatService.getHistory().subscribe((history: Message[]) => {
       this.messages = history;
     });
-
-    // Mensaje inicial del sistema si está vacío
-    if (this.messages.length === 0) {
-      this.messages = [
-        {
-          role: 'assistant',
-          content: '¡Hola! Soy tu Asistente Virtual Bancolombia. Estoy aquí para ayudarte a resolver tus dudas sobre cuentas, tarjetas, seguridad, créditos y mucho más. ¿En qué te puedo ayudar hoy?',
-          timestamp: new Date().toISOString()
-        }
-      ];
-    }
   }
 
   handleNewMessage(content: string) {

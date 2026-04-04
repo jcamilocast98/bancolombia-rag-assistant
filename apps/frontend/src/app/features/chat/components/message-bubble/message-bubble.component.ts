@@ -75,6 +75,7 @@ import { SourceCardComponent } from '../source-card/source-card.component';
       font-size: 15px;
       line-height: 1.5;
       word-break: break-word;
+      min-width: 80px;
     }
     
     .user-bubble {

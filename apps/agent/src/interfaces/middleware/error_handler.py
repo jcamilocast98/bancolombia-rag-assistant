@@ -9,8 +9,13 @@ logger = logging.getLogger(__name__)
 
 async def domain_exception_handler(request: Request, exc: DomainException):
     logger.error(f"Domain error: {str(exc)}")
+    
+    status_code = status.HTTP_400_BAD_REQUEST
+    if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+        status_code = status.HTTP_429_TOO_MANY_REQUESTS
+        
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
+        status_code=status_code,
         content={"detail": str(exc), "error_type": exc.__class__.__name__}
     )
 

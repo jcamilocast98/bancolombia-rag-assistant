@@ -38,6 +38,7 @@ class LLMOrchestrator:
         # Bucle de interacción con LLM para Tool Calling
         max_iterations = 5
         iteration = 0
+        all_sources = set()
         
         while iteration < max_iterations:
             iteration += 1
@@ -47,9 +48,9 @@ class LLMOrchestrator:
             response = await self.llm_port.generate_response(SYSTEM_PROMPT_TEMPLATE, working_messages)
             
             if not response.requires_action():
-                # Si no requiere action es porque terminó el razonamiento e incluye texto final (y esperamos que las fuentes internamente, 
-                # o el orquestador pueda extraer las fuentes del LLMResponse construído por el adapter)
-                return response.content, response.sources or []
+                # Combinar fuentes detectadas por el adapter con las recolectadas
+                combined_sources = list(set(response.sources or []) | all_sources)
+                return response.content, combined_sources
             
             # Agregar el mensaje de "Assistant" con las peticiones de herramientas al contexto en curso
             assistant_message = Message(
@@ -72,4 +73,4 @@ class LLMOrchestrator:
                 
         # Si sobrepasa iteraciones, retornar respuesta parcial
         logger.warning("Agent loop reached maximum iterations sin llegar a respuesta sin tool")
-        return "Disculpa, he encontrado un problema procesando tu solicitud.", []
+        return "Disculpa, he encontrado un problema procesando tu solicitud.", list(all_sources)

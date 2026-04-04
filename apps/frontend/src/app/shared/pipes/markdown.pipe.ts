@@ -1,7 +1,7 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import * as marked from 'marked';
-import * as DOMPurify from 'dompurify';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 @Pipe({
   name: 'markdown',

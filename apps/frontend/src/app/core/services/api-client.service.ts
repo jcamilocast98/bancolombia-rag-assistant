@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { ChatPort } from '../../domain/ports/chat.port';
-import { ChatRequest, ChatResponse, Message } from '../../domain/models/chat.models';
+import { ChatRequest, ChatResponse, Message, SourceCitation } from '../../domain/models/chat.models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -11,13 +11,19 @@ import { environment } from '../../../environments/environment';
 export class ApiClientService implements ChatPort {
   private http = inject(HttpClient);
   
-  // Mantenemos el estado de la conversación local en un BehaviorSubject
-  private historySubject = new BehaviorSubject<Message[]>([]);
+  // Mantenemos el historial inicializado con el mensaje de bienvenida
+  private historySubject = new BehaviorSubject<Message[]>([
+    {
+      role: 'assistant',
+      content: '¡Hola! Soy tu Asistente Virtual Bancolombia. Estoy aquí para ayudarte a resolver tus dudas sobre cuentas, tarjetas, seguridad, créditos y mucho más. ¿En qué te puedo ayudar hoy?',
+      timestamp: new Date().toISOString()
+    }
+  ]);
 
   sendMessage(request: ChatRequest): Observable<ChatResponse> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
-      'X-API-Key': environment.apiKey // Cabecera requerida por el Agente
+      'X-API-Key': environment.apiKey
     });
 
     // Agregamos el mensaje del usuario al historial local
@@ -28,13 +34,20 @@ export class ApiClientService implements ChatPort {
     });
 
     return this.http.post<ChatResponse>(`${environment.apiUrl}/chat`, request, { headers }).pipe(
-      tap((response) => {
-        // Al recibir la respuesta exitosa, agregamos al historial
+      tap((response: ChatResponse) => {
+        // Mapear fuentes si vienen como strings hacia el modelo SourceCitation del frontend
+        const mappedSources: SourceCitation[] = (response.sources || []).map((s: any) => {
+          if (typeof s === 'string') {
+            return { title: 'Ver fuente', url: s, snippet: '' };
+          }
+          return s;
+        });
+
         this.addMessageToHistory({
           role: 'assistant',
           content: response.reply,
           timestamp: new Date().toISOString(),
-          sources: response.sources
+          sources: mappedSources
         });
       })
     );

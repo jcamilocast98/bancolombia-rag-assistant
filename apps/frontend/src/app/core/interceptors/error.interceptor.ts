@@ -20,6 +20,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           errorMsg = 'No autorizado. Verifica tu API Key.';
         } else if (error.status === 500) {
           errorMsg = 'El agente experimentó un problema interno.';
+        } else if (error.status === 429) {
+          errorMsg = 'Límite de mensajes alcanzado. Por favor, espera un momento antes de enviar otro mensaje.';
         } else if (error.status === 504 || error.status === 408 || error.status === 0) {
           errorMsg = 'El agente no responde. Por favor intenta de nuevo.';
         } else {
