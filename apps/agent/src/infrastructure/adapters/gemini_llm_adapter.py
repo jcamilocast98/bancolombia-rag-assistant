@@ -12,12 +12,21 @@ from ...domain.exceptions.llm_exceptions import LLMProviderError
 logger = logging.getLogger(__name__)
 
 class GeminiLLMAdapter(LLMPort):
-    def __init__(self, api_key: str, available_tools_schema: Optional[List[dict]] = None):
+    def __init__(self, api_key: Optional[str] = None, available_tools_schema: Optional[List[dict]] = None):
         if not api_key or api_key == "test-api-key":
-             logger.warning("No se proporcionó API key válida para Gemini.")
+             logger.warning("No se proporcionó API key válida para Gemini. El cliente no se inicializará.")
         
-        self.client = genai.Client(api_key=api_key)
+        self._api_key = api_key
+        self._client = None
         self.available_tools_schema = available_tools_schema or []
+
+    @property
+    def client(self) -> genai.Client:
+        if self._client is None:
+            if not self._api_key:
+                raise LLMProviderError("No se puede inicializar Gemini: falta GEMINI_API_KEY")
+            self._client = genai.Client(api_key=self._api_key)
+        return self._client
 
     def _map_type(self, json_type: str) -> types.Type:
         mapping = {

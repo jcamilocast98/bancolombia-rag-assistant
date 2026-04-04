@@ -53,7 +53,7 @@ jobs:
     - name: Validar Sintaxis Agente (Lint/Check)
       working-directory: ./apps/agent
       env:
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GEMINI_API_KEY: "test-ci-key-placeholder"
         API_KEY: "test-ci-key"
       run: |
         # Verificamos que fastapi importe correctamente (prueba mínima de dependencias rotas)
