@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     api_key: str = "test-api-key"
     
-    anthropic_api_key: str
+    anthropic_api_key: str | None = None
+    gemini_api_key: str | None = None
     mcp_server_command: str = "python"
     mcp_server_args: str = "-m;scraping_indexing.server"
     mcp_transport: str = "stdio" # stdio o sse

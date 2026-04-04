@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .settings import settings
 from ..persistence.database import get_db_session
 from ..adapters.postgres_memory_adapter import PostgresMemoryAdapter
-from ..adapters.anthropic_llm_adapter import AnthropicLLMAdapter
+from ..adapters.gemini_llm_adapter import GeminiLLMAdapter
 from ..adapters.mcp_client_adapter import MCPClientAdapter
 
 from ...application.services.contextual_memory_manager import ContextualMemoryManager
@@ -46,9 +46,9 @@ AVAILABLE_TOOLS = [
     }
 ]
 
-# Creamos el adapter con las API Keys correspondientes
-llm_adapter = AnthropicLLMAdapter(
-    api_key=settings.anthropic_api_key, 
+# Creamos el adapter con las API Keys correspondientes de Gemini
+llm_adapter = GeminiLLMAdapter(
+    api_key=settings.gemini_api_key, 
     available_tools_schema=AVAILABLE_TOOLS
 )
 tool_dispatcher = ToolDispatcher(mcp_adapter)
