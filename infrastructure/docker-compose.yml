@@ -135,12 +135,8 @@ services:
     ports:
       - "${MCP_SERVER_PORT:-8001}:8001"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-bancolombia_rag}
-      - POSTGRES_USER=${POSTGRES_USER:-raguser}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=postgresql://raguser:changeme@postgres:5432/bancolombia_rag
       - MCP_TRANSPORT=${MCP_TRANSPORT:-stdio}
       - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
     depends_on:
