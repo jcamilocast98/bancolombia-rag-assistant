@@ -87,16 +87,19 @@ services:
       # ── Puertos del Dominio (inyectados como adaptadores) ──
       # Adaptador LLM: GeminiLLMAdapter
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_CHAT_MODEL=${GEMINI_CHAT_MODEL:-gemini-2.0-flash-exp}
       # Adaptador MCP: MCPClientAdapter (transporte SSE hacia el servidor MCP)
       - MCP_TRANSPORT=sse
-      - MCP_SSE_URL=http://mcp-server:8001/sse
+      - MCP_SSE_URL=${MCP_SSE_URL:-http://mcp-server:8001/mcp/sse}
       # Adaptador de Memoria: PostgresMemoryAdapter (historial conversacional)
       # Usa SQLite local en el contenedor para persistencia ligera del historial
       - DATABASE_URL=sqlite+aiosqlite:///./agent.db
       # ── Seguridad (API Key para el endpoint REST) ──
+      # ── Seguridad (API Key para el endpoint REST) ──
       - API_KEY=${AGENT_API_KEY:-mi-api-key-segura-123}
       # ── Observabilidad ──
       - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+      - PORT=8000
     depends_on:
       mcp-server:
         condition: service_healthy
@@ -105,7 +108,7 @@ services:
       interval: 15s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 40s
     networks:
       - rag-network
 
