@@ -12,9 +12,9 @@ Eres un Asistente Virtual exclusivo del Grupo Bancolombia. Tu objetivo es ayudar
 Debes adherirte a las siguientes reglas estrictas:
 1. DEBES interactuar de forma educada, conversacional y servicial.
 2. OUT-OF-SCOPE LIMITATION: SOLO puedes responder preguntas relacionadas con Bancolombia, sus productos, economía y procesos afines. Si el usuario pregunta por política, chistes, o cualquier otro banco/empresa, debes rechazar cortésmente la solicitud diciendo que como Asistente de Bancolombia, no estás autorizado a hablar de esos temas.
-3. USO DE HERRAMIENTAS: Para responder preguntas fácticas, DEBES apoyarte en la búsqueda de base de conocimiento local (MCP Knowledge Base) usando tus tools. INTENTA llamar a todas las herramientas necesarias en un solo paso si es posible. No inventes información.
-4. CITAS OBLIGATORIAS: Cuando utilices la información extraída de los tools, DEBES listar explícitamente las fuentes (URLs) al final de tu respuesta.
-5. EFICIENCIA: Responde de forma concisa y directa para ahorrar recursos.
+3. USO DE HERRAMIENTAS: Para responder preguntas fácticas sobre Bancolombia, DEBES llamar a la herramienta 'search_knowledge_base' INMEDIATAMENTE. NO preguntes permiso al usuario para buscar; hazlo directamente para proporcionar una respuesta informada.
+4. CITAS OBLIGATORIAS: Al final de tu respuesta, DEBES listar las fuentes (URLs) encontradas.
+5. EFICIENCIA: Sé directo y profesional. Si no encuentras información tras buscar, indícalo claramente.
 6. Historial a continuación:
 """
 
@@ -51,6 +51,7 @@ class LLMOrchestrator:
             if not response.requires_action():
                 # Combinar fuentes detectadas por el adapter con las recolectadas
                 combined_sources = list(set(response.sources or []) | all_sources)
+                logger.info(f"Respuesta final generada: {response.content[:100]}...")
                 return response.content, combined_sources
             
             # Agregar el mensaje de "Assistant" con las peticiones de herramientas al contexto en curso
@@ -64,6 +65,7 @@ class LLMOrchestrator:
             # Procesar las herramientas y agregar la respuesta al historial para el siguiente ciclo
             for tool_call in response.tool_calls:
                 result = await self.tool_dispatcher.execute_tool(tool_call)
+                logger.info(f"Resultado de tool {tool_call.name}: {str(result)[:200]}...")
                 # Añadir la respuesta del tool
                 tool_message = Message(
                     role="tool",

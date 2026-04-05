@@ -1,14 +1,16 @@
 """
 Punto de entrada del Servidor MCP RAG — Bancolombia
-Implementación definitiva de SSE nativo (connect_sse).
+Implementación usando Starlette puro para el montaje MCP para evitar conflictos de respuesta.
 """
 import logging
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
 from mcp.server.sse import SseServerTransport
+from mcp.server import Server
 
 from src.interfaces.api.health_router import router as health_router
 from src.interfaces.mcp.server import mcp_server
@@ -21,29 +23,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Definimos el transporte SSE indicando la ruta relativa /sse/messages
-# para que el cliente la resuelva correctamente.
-sse_transport = SseServerTransport("/sse/messages")
+sse_transport = SseServerTransport("/messages")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("=" * 50)
-    logger.info("  MCP Server RAG — Bancolombia (Native SSE Corrected 2)")
+    logger.info("  MCP Server RAG — Bancolombia (Starlette Mount)")
     logger.info("=" * 50)
     yield
-    logger.info("MCP Server cerrando...")
 
+# APP PRINCIPAL
 app = FastAPI(
     title="Bancolombia RAG MCP Server",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Endpoint para la conexión inicial de SSE (ASGI Crudo)
-async def sse_asgi(scope, receive, send):
-    if scope["type"] != "http":
-        return
-    # sse_transport.connect_sse toma el control de la conexión ASGI
+# HANDLERS ASGI PUROS PARA MCP
+async def handle_sse(scope, receive, send):
+    """Maneja la conexión SSE inicial."""
+    logger.info(f"[MCP] Nueva conexión SSE")
     async with sse_transport.connect_sse(scope, receive, send) as (read_stream, write_stream):
         await mcp_server.run(
             read_stream,
@@ -51,29 +50,23 @@ async def sse_asgi(scope, receive, send):
             mcp_server.create_initialization_options()
         )
 
-# Endpoint para recibir mensajes POST (ASGI Crudo)
-async def messages_asgi(scope, receive, send):
-    if scope["type"] != "http":
-        return
+async def handle_messages(scope, receive, send):
+    """Maneja el envío de mensajes JSON-RPC."""
+    logger.info(f"[MCP] Nuevo mensaje recibido")
     await sse_transport.handle_post_message(scope, receive, send)
 
-from starlette.routing import Mount
+# RUTAS MCP USANDO STARLETTE
+mcp_routes = [
+    Route("/sse", endpoint=handle_sse, methods=["GET"]),
+    Route("/messages", endpoint=handle_messages, methods=["POST"]),
+]
+mcp_asgi_app = Starlette(routes=mcp_routes)
 
-# Montamos las rutas ASGI explícitamente.
-# El mount más específico debe ir primero.
-app.routes.append(Mount("/sse/messages", app=messages_asgi))
-app.routes.append(Mount("/sse", app=sse_asgi))
+# Montar sub-app en /mcp
+app.mount("/mcp", mcp_asgi_app)
 
-# Health router
+# Health router (en app principal)
 app.include_router(health_router, prefix="/api")
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Error no manejado: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc)}
-    )
 
 if __name__ == "__main__":
     import uvicorn

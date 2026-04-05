@@ -15,11 +15,18 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Setup DB
-    async with engine.begin() as conn:
-        # Create tables locally (In prod should use alembic)
-        # SQLAlchemy create_all is generally safe, but we use run_sync
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database asíncrona iniciada y tablas verificadas.")
+    try:
+        async with engine.begin() as conn:
+            # Create tables locally (In prod should use alembic)
+            # SQLAlchemy create_all is generally safe, but we use run_sync
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database asíncrona iniciada y tablas verificadas.")
+    except Exception as e:
+        # Si la tabla ya existe, no queremos que el proceso muera (común en múltiples workers)
+        if "already exists" in str(e):
+            logger.info("Database: Algunas tablas ya existen, omitiendo creación.")
+        else:
+            logger.error(f"Error inesperado cargando base de datos: {e}")
     yield
     # Cleanup DB
     await engine.dispose()

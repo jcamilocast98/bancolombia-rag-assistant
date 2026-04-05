@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from typing import List, Optional
 from google import genai
 from google.genai import types
@@ -95,14 +96,17 @@ class GeminiLLMAdapter(LLMPort):
                     parts.append(types.Part.from_text(text=" "))
                 contents.append(types.Content(role="model", parts=parts))
             elif msg.is_tool():
-                tool_name = self._find_tool_name(msg.tool_call_id, messages)
+                tool_name = self._find_tool_id(msg.tool_call_id, messages)
                 parts = [
                     types.Part.from_function_response(
                         name=tool_name,
-                        response={"result": msg.content}
+                        # Usamos 'content' como clave para que el modelo identifique mejor el texto RAG
+                        response={"content": msg.content}
                     )
                 ]
-                contents.append(types.Content(role="user", parts=parts))
+                # En el SDK google-genai, los resultados de herramientas 
+                # deben tener role="tool" para ser procesados correctamente
+                contents.append(types.Content(role="tool", parts=parts))
 
         gemini_tools = self._get_gemini_tools()
         config = types.GenerateContentConfig(
@@ -111,35 +115,54 @@ class GeminiLLMAdapter(LLMPort):
             tools=gemini_tools if gemini_tools else None
         )
 
-        try:
-            # google-genai is synchronous mostly, but we can wrap or just call generate_content.
-            # Using the sync client since 'async' methods might not be fully exposed transparently
-            # or `aio` client is separate. For this technical test, we wrap the call.
-            response = self.client.models.generate_content(
-                model=self._model_name,
-                contents=contents,
-                config=config
-            )
-            
-            tool_calls = []
-            text_response = ""
-            
-            if response.candidates and response.candidates[0].content.parts:
-                for part in response.candidates[0].content.parts:
-                    if part.text:
-                        text_response += part.text
-                    elif part.function_call:
-                        # Gemini SDK maps function_call to an object
-                        import uuid
-                        call_id = str(uuid.uuid4())[:8] # Gemini rarely gives an explicit tool call ID, we mock one
-                        tool_calls.append(ToolCall(
-                            id=call_id,
-                            name=part.function_call.name,
-                            arguments=dict(part.function_call.args)
-                        ))
-                        
-            return LLMResponse(content=text_response, tool_calls=tool_calls)
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # google-genai is synchronous mostly, but we can wrap or just call generate_content.
+                # Using the sync client since 'async' methods might not be fully exposed transparently
+                # or `aio` client is separate. For this technical test, we wrap the call.
+                response = self.client.models.generate_content(
+                    model=self._model_name,
+                    contents=contents,
+                    config=config
+                )
+                
+                tool_calls = []
+                text_response = ""
+                
+                if response.candidates and response.candidates[0].content.parts:
+                    for part in response.candidates[0].content.parts:
+                        if part.text:
+                            text_response += part.text
+                        elif part.function_call:
+                            # Gemini SDK maps function_call to an object
+                            import uuid
+                            call_id = str(uuid.uuid4())[:8] # Gemini rarely gives an explicit tool call ID, we mock one
+                            tool_calls.append(ToolCall(
+                                id=call_id,
+                                name=part.function_call.name,
+                                arguments=dict(part.function_call.args)
+                            ))
+                            
+                return LLMResponse(content=text_response, tool_calls=tool_calls)
 
-        except Exception as e:
-            logger.error(f"Error invocando Gemini: {e}")
-            raise LLMProviderError(f"Falla en comunicación con Gemini: {e}")
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str and attempt < max_retries - 1:
+                    logger.warning(f"Gemini 429 (Cuota excedida). Reintentando en {retry_delay}s... (Intento {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2 # Backoff exponencial
+                    continue
+                
+                logger.error(f"Error invocando Gemini: {e}")
+                raise LLMProviderError(f"Falla en comunicación con Gemini: {e}")
+
+    def _find_tool_id(self, tool_call_id: str, messages: List[Message]) -> str:
+        for m in messages:
+            if m.is_assistant() and m.tool_calls:
+                for tc in m.tool_calls:
+                    if tc.id == tool_call_id:
+                        return tc.name
+        return tool_call_id

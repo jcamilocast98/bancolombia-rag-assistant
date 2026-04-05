@@ -52,15 +52,24 @@ class MCPClientAdapter(MCPClientPort):
             
         async with AsyncExitStack() as stack:
             try:
-                # El sse_client del SDK mcp maneja la conexión HTTP y el stream de eventos
                 read, write = await stack.enter_async_context(sse_client(self.sse_url))
-                session = await stack.enter_async_context(ClientSession(read, write))
-                await session.initialize()
-                
-                result = await session.call_tool(tool_name, arguments)
-                if hasattr(result, 'content') and len(result.content) > 0:
-                     return result.content[0].text
-                return json.dumps({"status": "executed_empty_content"})
+                logger.info(f"[MCP-Client] Conexión SSE establecida con {self.sse_url}")
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    logger.info(f"[MCP-Client] Sesión MCP inicializada. Llamando a '{tool_name}'...")
+                    
+                    result = await session.call_tool(tool_name, arguments)
+                    
+                    if hasattr(result, 'isError') and result.isError:
+                        logger.error(f"[MCP-Client] Error retornado por la herramienta: {result}")
+                        return json.dumps({"error": "tool_execution_failed", "details": str(result)})
+
+                    if hasattr(result, 'content') and len(result.content) > 0:
+                        logger.info(f"[MCP-Client] Respuesta recibida de '{tool_name}' ({len(result.content[0].text)} caracteres)")
+                        return result.content[0].text
+                    
+                    logger.warning(f"[MCP-Client] La herramienta '{tool_name}' retornó contenido vacío.")
+                    return json.dumps({"status": "executed_empty_content"})
                 
             except Exception as e:
                 logger.error(f"Falla conexión SSE MCP en {self.sse_url}: {e}")
