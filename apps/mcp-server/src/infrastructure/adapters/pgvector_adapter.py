@@ -73,6 +73,7 @@ class PgVectorAdapter(VectorDBPort):
         try:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(sql, *keywords)
+                logger.info(f"[pgvector] ILIKE search found {len(rows)} results for keywords: {keywords}")
                 return [
                     DocumentChunk(
                         chunk_id=row["chunk_id"],
@@ -127,6 +128,7 @@ class PgVectorAdapter(VectorDBPort):
         try:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(sql, vector_str, top_k)
+                logger.info(f"[pgvector] Vector search found {len(rows)} results")
                 return [
                     DocumentChunk(
                         chunk_id=row["chunk_id"],

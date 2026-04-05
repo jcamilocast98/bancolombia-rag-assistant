@@ -32,9 +32,11 @@ class AdaptadorEmbeddingsGemini(PuertoEmbeddings):
             )
 
             try:
+                from google.genai import types
                 result = self.client.models.embed_content(
                     model=self.modelo,
                     contents=lote,
+                    config=types.EmbedContentConfig(output_dimensionality=768),
                 )
                 embeddings_lote = [emb.values for emb in result.embeddings]
                 todos_los_embeddings.extend(embeddings_lote)

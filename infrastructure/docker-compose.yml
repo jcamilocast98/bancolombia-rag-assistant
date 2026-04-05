@@ -99,6 +99,7 @@ services:
       - API_KEY=${AGENT_API_KEY:-mi-api-key-segura-123}
       # ── Observabilidad ──
       - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
+      - PYTHONIOENCODING=utf-8
       - PORT=8000
     depends_on:
       mcp-server:
@@ -136,6 +137,7 @@ services:
       - MCP_TRANSPORT=sse
       # ── Observabilidad ──
       - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
+      - PYTHONIOENCODING=utf-8
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,7 +167,7 @@ services:
       # Adaptador de Embeddings: AdaptadorEmbeddingsGemini
       - PROVEEDOR_EMBEDDINGS=gemini
       - CLAVE_API_GEMINI=${GEMINI_API_KEY}
-      - MODELO_EMBEDDING_GEMINI=${MODELO_EMBEDDING_GEMINI:-text-embedding-004}
+      - MODELO_EMBEDDING_GEMINI=${MODELO_EMBEDDING_GEMINI:-embedding-001}
       # Adaptador de Cola: AdaptadorColaRedis
       - URL_REDIS=redis://redis:6379/0
       # Adaptador de Almacenamiento: AdaptadorAlmacenamientoS3
@@ -184,6 +186,7 @@ services:
       - SOLAPAMIENTO_CHUNK=${CHUNK_OVERLAP:-64}
       # ── Observabilidad ──
       - LOG_LEVEL=INFO
+      - PYTHONIOENCODING=utf-8
     depends_on:
       postgres:
         condition: service_healthy

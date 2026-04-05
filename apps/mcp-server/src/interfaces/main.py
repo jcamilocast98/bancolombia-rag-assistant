@@ -23,6 +23,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# SseServerTransport usa scope.get("root_path") para construir la URL.
+# root_path será "/mcp", por lo que "/mcp" + "/messages" = "/mcp/messages".
 sse_transport = SseServerTransport("/messages")
 
 @asynccontextmanager
@@ -39,10 +41,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from starlette.requests import Request
+from starlette.responses import Response
+
 # HANDLERS ASGI PUROS PARA MCP
 async def handle_sse(scope, receive, send):
-    """Maneja la conexión SSE inicial."""
-    logger.info(f"[MCP] Nueva conexión SSE")
+    """Maneja la conexión SSE inicial como una aplicación ASGI pura."""
+    logger.info(f"[MCP-ASGI] Nueva conexión SSE")
     async with sse_transport.connect_sse(scope, receive, send) as (read_stream, write_stream):
         await mcp_server.run(
             read_stream,
@@ -50,20 +55,24 @@ async def handle_sse(scope, receive, send):
             mcp_server.create_initialization_options()
         )
 
-async def handle_messages(scope, receive, send):
-    """Maneja el envío de mensajes JSON-RPC."""
-    logger.info(f"[MCP] Nuevo mensaje recibido")
-    await sse_transport.handle_post_message(scope, receive, send)
+# DISPATCHER ASGI PARA MCP
+async def mcp_router(scope, receive, send):
+    """Enruta peticiones /sse y /messages dentro del montaje /mcp."""
+    path = scope.get("path", "")
+    
+    # Matching más robusto que ignora prefijos residuales y slashes
+    if "/sse" in path:
+        await handle_sse(scope, receive, send)
+    elif "/messages" in path:
+        await sse_transport.handle_post_message(scope, receive, send)
+    else:
+        # 404 para otras rutas dentro de /mcp
+        logger.warning(f"[MCP-ASGI] Ruta no encontrada en montaje /mcp: {path}")
+        response = Response("Not Found", status_code=404)
+        await response(scope, receive, send)
 
-# RUTAS MCP USANDO STARLETTE
-mcp_routes = [
-    Route("/sse", endpoint=handle_sse, methods=["GET"]),
-    Route("/messages", endpoint=handle_messages, methods=["POST"]),
-]
-mcp_asgi_app = Starlette(routes=mcp_routes)
-
-# Montar sub-app en /mcp
-app.mount("/mcp", mcp_asgi_app)
+# Montar el dispatcher en el nivel superior de /mcp
+app.mount("/mcp", mcp_router)
 
 # Health router (en app principal)
 app.include_router(health_router, prefix="/api")

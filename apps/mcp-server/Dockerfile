@@ -27,4 +27,4 @@ USER appuser
 
 EXPOSE 8001
 
-CMD ["uvicorn", "src.interfaces.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
+CMD ["uvicorn", "src.interfaces.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
