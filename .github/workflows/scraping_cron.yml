@@ -10,6 +10,32 @@ on:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: ankane/pgvector:v0.5.1
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_DB: bancolombia_rag
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - name: Descargar Código
       uses: actions/checkout@v4
@@ -18,7 +44,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-        cache: 'pip'
+        cache: pip
 
     - name: Instalar Dependencias
       working-directory: ./packages/scraping-indexing
@@ -29,14 +55,20 @@ jobs:
     - name: Ejecutar Extracción (Scraping)
       working-directory: ./packages/scraping-indexing
       env:
-        # Aquí inyectas el API_KEY real:
-        # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        # Nota: Hereda paginas_maximas=50 desde los ajustes por defecto
-        PAGINAS_MAXIMAS: "50"
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        PAGINAS_MAXIMAS: "10"
       run: |
         python -m src.scraping.main
 
     - name: Ejecutar Indexación
       working-directory: ./packages/scraping-indexing
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres_password
+        POSTGRES_DB: bancolombia_rag
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         python -m src.indexacion.main

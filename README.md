@@ -192,6 +192,12 @@ El repositorio cuenta con un pipeline de integración continua robusto en GitHub
 3. **MCP Server**: Valida la disponibilidad de herramientas y recursos de la base de conocimiento.
 4. **Angular Frontend**: Realiza una comprobación de construcción (`build`) para asegurar que no hay errores de sintaxis o tipos.
 
+### 🔄 Pipeline de Extracción Automática (Cron)
+Además del CI, existe el workflow `scraping_cron.yml` que:
+- Se ejecuta semanalmente para mantener la base de conocimiento fresca.
+- Utiliza **Service Containers** de GitHub para levantar instancias efímeras de **Redis** y **PostgreSQL (pgvector)**.
+- Requiere el **Secret** `GEMINI_API_KEY` para generar los embeddings durante la fase de indexación.
+
 ---
 
 <p align="center">
