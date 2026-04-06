@@ -17,6 +17,7 @@
 - [Comunicación SSE (Server-Sent Events)](#comunicación-sse-server-sent-events)
 - [Endpoints y Swagger UI](#endpoints-y-swagger-ui)
 - [Guía de Instalación (Docker)](#guía-de-instalación-docker)
+- [Interactuando con el Agente (Uso de Herramientas MCP)](#interactuando-con-el-agente-uso-de-herramientas-mcp)
 - [Decisiones de Arquitectura](#decisiones-de-arquitectura)
 - [Testing y CI/CD](#testing-y-cicd)
 - [Estructura del Monorepo](#estructura-del-monorepo)
@@ -27,10 +28,10 @@
 
 Este asistente virtual implementa un flujo RAG robusto para el segmento **Personas** de Bancolombia:
 
-1. **Ingesta**: Scraping ético de hasta 100 páginas del portal oficial.
+1. **Ingesta**: Scraping ético de hasta 100 páginas del portal oficial "https://www.bancolombia.com/personas".
 2. **Procesamiento**: Chunking semántico y generación de embeddings con `gemini-embedding-001`.
 3. **Consulta**: Búsqueda vectorial en `pgvector` con scores de relevancia.
-4. **Respuesta**: Orquestación con Gemini 2.5 Flash y citación estricta de fuentes.
+4. **Respuesta**: Orquestación con Gemini 2.5   y citación estricta de fuentes.
 
 ### Características Principales
 - **Citas Verificables**: Cada respuesta incluye `(URL, Título, Relevancia)`.
@@ -125,5 +126,5 @@ El repositorio cuenta con un pipeline de integración continua robusto en GitHub
 ---
 
 <p align="center">
-  <em>Desarrollado como solución técnica de alta disponibilidad para el Centro de Ayuda de Bancolombia.</em>
+  <em>Desarrollado como solución técnica de alta disponibilidad para Proceso de Selección 59034 Bancolombia.</em>
 </p>
