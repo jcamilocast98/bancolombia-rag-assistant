@@ -21,17 +21,25 @@ async def main():
     embeddings = AdaptadorEmbeddingsSimulado()  # Cambiar por AdaptadorEmbeddingsOpenAI cuando haya API Key
     bd_vectorial = AdaptadorPgVector()
 
-    # Creación de data cruda simulada en MinIO para probar el orquestador
-    url_ejemplo = "https://www.bancolombia.com/personas/cuentas"
-    html_ejemplo = "<html><body><nav>Menu Oculto</nav><main><h1>Cuentas de Ahorro</h1><p>Esta es la cuenta perfecta para ti. Sin cuota de manejo.</p></main><footer>Contacto</footer></body></html>"
+    # Creación de data cruda simulada en MinIO para probar el orquestador (Múltiples páginas para generar >10 chunks)
+    paginas_prueba = [
+        {
+            "url": f"https://www.bancolombia.com/personas/test-{i}",
+            "titulo": f"Página de Prueba {i}",
+            "html": f"<html><body><main><h1>Sección {i} Bancolombia</h1><p>{'Información detallada de prueba para generar volumen de chunks. ' * 20}</p></main></body></html>"
+        } for i in range(1, 11) # Generamos 10 páginas
+    ]
     
-    pagina = Pagina(
-        url=url_ejemplo,
-        titulo="Cuentas Bancolombia",
-        contenido_html=html_ejemplo,
-        codigo_estado=200,
-    )
-    ruta = await almacenamiento.guardar_html_crudo(pagina)
+    rutas = []
+    for p in paginas_prueba:
+        pagina = Pagina(
+            url=p["url"],
+            titulo=p["titulo"],
+            contenido_html=p["html"],
+            codigo_estado=200,
+        )
+        ruta = await almacenamiento.guardar_html_crudo(pagina)
+        rutas.append((ruta, p["url"], {"titulo": p["titulo"]}))
 
     # Componentes Principales
     limpiador = LimpiadorDatos()
@@ -49,12 +57,12 @@ async def main():
     )
 
     print("[Tubería de Indexación] Corriendo flujo completo sobre los datos de prueba...")
-    metadatos = {"titulo": "Cuentas Bancolombia Personas"}
-    await orquestador.procesar_documento(
-        ruta_almacenamiento=ruta, 
-        url_origen=url_ejemplo, 
-        metadatos=metadatos
-    )
+    for r, u, m in rutas:
+        await orquestador.procesar_documento(
+            ruta_almacenamiento=r, 
+            url_origen=u, 
+            metadatos=m
+        )
     
     print("[Tubería de Indexación] Proceso completado exitosamente.")
 
