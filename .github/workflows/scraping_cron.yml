@@ -36,22 +36,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      minio:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadminpassword
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - name: Descargar Código
       uses: actions/checkout@v4
+
+    - name: Iniciar MinIO (Manual)
+      run: |
+        docker run -d -p 9000:9000 --name minio \
+          -e "MINIO_ROOT_USER=minioadmin" \
+          -e "MINIO_ROOT_PASSWORD=minioadminpassword" \
+          minio/minio server /data
+        
+        # Esperar a que el servicio esté listo
+        timeout 30s bash -c 'until curl -f http://localhost:9000/minio/health/live; do sleep 2; done'
 
     - name: Configurar Entorno Python
       uses: actions/setup-python@v5
