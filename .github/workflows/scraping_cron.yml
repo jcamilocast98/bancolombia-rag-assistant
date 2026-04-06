@@ -44,7 +44,7 @@ jobs:
       run: |
         docker run -d -p 9000:9000 --name minio \
           -e "MINIO_ROOT_USER=minioadmin" \
-          -e "MINIO_ROOT_PASSWORD=minioadminpassword" \
+          -e "MINIO_ROOT_PASSWORD=minioadmin" \
           minio/minio server /data
         
         # Esperar a que el servicio esté listo
@@ -65,28 +65,23 @@ jobs:
     - name: Ejecutar Extracción (Scraping)
       working-directory: ./packages/scraping-indexing
       env:
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
+        URL_REDIS: redis://localhost:6379/0
         ENDPOINT_S3: localhost:9000
-        ACCESO_S3: minioadmin
-        SECRETO_S3: minioadminpassword
-        BUCKET_S3: html-crudo
-        PAGINAS_MAXIMAS: "10"
+        CLAVE_ACCESO_S3: minioadmin
+        CLAVE_SECRETA_S3: minioadmin
+        BUCKET_S3: bancolombia-raw-html
+        PAGINAS_MAXIMAS: "5"
       run: |
         python -m src.scraping.main
 
     - name: Ejecutar Indexación
       working-directory: ./packages/scraping-indexing
       env:
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: 5432
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres_password
-        POSTGRES_DB: bancolombia_rag
+        URL_BASE_DATOS: postgresql+asyncpg://postgres:postgres_password@localhost:5432/bancolombia_rag
         ENDPOINT_S3: localhost:9000
-        ACCESO_S3: minioadmin
-        SECRETO_S3: minioadminpassword
-        BUCKET_S3: html-crudo
+        CLAVE_ACCESO_S3: minioadmin
+        CLAVE_SECRETA_S3: minioadmin
+        BUCKET_S3: bancolombia-raw-html
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         python -m src.indexacion.main
