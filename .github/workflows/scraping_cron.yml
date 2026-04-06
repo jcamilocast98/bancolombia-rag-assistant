@@ -74,6 +74,13 @@ jobs:
       run: |
         python -m src.scraping.main
 
+    - name: Inicializar Base de Datos (Tablas & Extensiones)
+      working-directory: ./packages/scraping-indexing
+      env:
+        URL_BASE_DATOS: postgresql+asyncpg://postgres:postgres_password@localhost:5432/bancolombia_rag
+      run: |
+        python -m src.init_db
+
     - name: Ejecutar Indexación
       working-directory: ./packages/scraping-indexing
       env:
