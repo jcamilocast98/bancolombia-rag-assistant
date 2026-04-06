@@ -99,6 +99,19 @@ docker-compose -f infrastructure/docker-compose.yml up -d --build
 
 ---
 
+## Interactuando con el Agente (Uso de Herramientas MCP)
+
+El asistente orquestado con Gemini utiliza el **Model Context Protocol (MCP)** para decidir qué herramienta ejecutar basándose en la intención de tu pregunta. Aquí tienes ejemplos de cómo activarlas:
+
+| Acción Deseada | Ejemplo de Consulta (Prompt) | Herramienta Ejecutada |
+|----------------|------------------------------|-----------------------|
+| **Búsqueda Semántica** | "¿Cuáles son los requisitos para un crédito de vehículo?" | `search_knowledge_base` |
+| **Estadísticas del Sistema** | "¿Cuántos documentos tienes indexados y qué modelo usas?" | `get_knowledge_base_stats` |
+| **Explorar Temas** | "¿Qué información tienes disponible?" o "¿De qué podemos hablar?" | `list_categories` |
+| **Detalle de Artículo** | "Léeme el contenido completo de esta URL: [URL]" | `get_article_by_url` |
+
+---
+
 ## Decisiones de Arquitectura
 
 ### 1. IA & Embeddings: Google Gemini
@@ -111,6 +124,62 @@ El uso de **Model Context Protocol** permite que el Agente sea agnóstico a las 
 Se implementó un sistema de **One-Shot Prompting** que obliga al LLM a seguir el formato:
 `Fuentes: * (URL, Título, Score de Relevancia)`
 Esto garantiza que el usuario siempre sepa de dónde proviene la información de Bancolombia.
+
+---
+
+## Estructura del Monorepo
+
+```
+📦 bancolombia-rag-assistant/
+├── 📂 apps/
+│   ├── 📂 frontend/              # Angular 17+ — Interfaz de Chat
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── core/          # Servicios singleton, interceptors, guards
+│   │   │   │   ├── features/      # Módulos de funcionalidad (chat, history)
+│   │   │   │   ├── shared/        # Componentes reutilizables, pipes, directives
+│   │   │   │   └── domain/        # Interfaces, modelos de dominio
+│   │   ├── Dockerfile
+│   │   └── angular.json
+│   │
+│   ├── 📂 agent/                  # Python — Cliente MCP / Orquestador LLM
+│   │   ├── src/
+│   │   │   ├── domain/            # Entidades, value objects, puertos (interfaces)
+│   │   │   ├── application/       # Casos de uso, servicios de aplicación
+│   │   │   ├── infrastructure/    # Adaptadores (Gemini, MCP, DB)
+│   │   │   └── interfaces/       # Controladores FastAPI (API layer)
+│   │   ├── tests/
+│   │   └── Dockerfile
+│   │
+│   └── 📂 mcp-server/            # Python/FastAPI — Servidor MCP
+│       ├── src/
+│       │   ├── domain/            # Entidades de dominio, puertos
+│       │   ├── application/       # Casos de uso (search, retrieve, stats)
+│       │   ├── infrastructure/    # Adaptadores (pgvector, MCP SDK)
+│       │   └── interfaces/       # MCP tools & resources exposure
+│       ├── tests/
+│       └── Dockerfile
+│
+├── 📂 packages/
+│   └── 📂 scraping-indexing/      # Módulos de Crawling + Indexación
+│       ├── src/
+│       │   ├── scraping/          # Crawler, Extractor de Contenido
+│       │   ├── indexing/          # Limpieza, Chunking, Generación de Embeddings
+│       │   └── infrastructure/   # Adaptadores (Postgres, S3/MinIO)
+│       └── tests/
+│
+├── 📂 infrastructure/
+│   ├── docker-compose.yml         # Orquestación de todos los servicios
+│   ├── .env.example               # Template de variables de entorno
+│   └── 📂 ci-cd/
+│
+├── 📂 documentation/
+│   ├── 📂 diagramas/              # Diagramas de arquitectura C4
+│   └── 📂 decisiones/             # ADRs (Architecture Decision Records)
+│
+├── README.md                      # Este archivo
+└── LICENSE
+```
 
 ---
 
