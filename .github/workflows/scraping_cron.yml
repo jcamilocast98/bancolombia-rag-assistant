@@ -36,6 +36,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadminpassword
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - name: Descargar Código
       uses: actions/checkout@v4
@@ -57,6 +70,10 @@ jobs:
       env:
         REDIS_HOST: localhost
         REDIS_PORT: 6379
+        ENDPOINT_S3: localhost:9000
+        ACCESO_S3: minioadmin
+        SECRETO_S3: minioadminpassword
+        BUCKET_S3: html-crudo
         PAGINAS_MAXIMAS: "10"
       run: |
         python -m src.scraping.main
@@ -69,6 +86,10 @@ jobs:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: postgres_password
         POSTGRES_DB: bancolombia_rag
+        ENDPOINT_S3: localhost:9000
+        ACCESO_S3: minioadmin
+        SECRETO_S3: minioadminpassword
+        BUCKET_S3: html-crudo
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: |
         python -m src.indexacion.main
