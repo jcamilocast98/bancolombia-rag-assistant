@@ -71,6 +71,22 @@ async def list_tools():
                 "required": ["url"],
             },
         ),
+        Tool(
+            name="list_categories",
+            description=(
+                "Lista las categorías o temas principales disponibles en la base de conocimiento de Bancolombia. "
+                "Útil para responder preguntas generales sobre qué información maneja el asistente."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="get_knowledge_base_stats",
+            description=(
+                "Obtiene estadísticas técnicas de la base de conocimiento: número de documentos, "
+                "categorías disponibles, última actualización y modelo de IA utilizado."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
     ]
 
 
@@ -90,9 +106,16 @@ async def call_tool(name: str, arguments: dict):
 
         output_parts = []
         for i, chunk in enumerate(result.chunks, 1):
+            # Derivar un título legible de la URL si no está en metadata
+            url_parts = chunk.url.rstrip("/").split("/")
+            derived_title = url_parts[-1].replace("-", " ").capitalize() if len(url_parts) > 3 else "Inicio"
+            title = chunk.metadata.get("titulo", derived_title)
+            
             output_parts.append(
                 f"--- Resultado {i} ---\n"
+                f"Título: {title}\n"
                 f"URL: {chunk.url}\n"
+                f"Score: {chunk.score:.4f}\n"
                 f"Contenido: {chunk.content}\n"
             )
 
@@ -113,6 +136,23 @@ async def call_tool(name: str, arguments: dict):
         )
         return [TextContent(type="text", text=text)]
 
+    elif name == "list_categories":
+        categories = await vector_db.get_unique_categories()
+        text = "Categorías disponibles en la base de conocimiento:\n- " + "\n- ".join(categories)
+        return [TextContent(type="text", text=text)]
+
+    elif name == "get_knowledge_base_stats":
+        stats = await stats_uc.execute()
+        text = (
+            f"Estadísticas de la Base de Conocimiento:\n"
+            f"- Documentos únicos: {stats.total_documents}\n"
+            f"- Fragmentos totales: {stats.total_chunks}\n"
+            f"- Última actualización: {stats.last_updated}\n"
+            f"- Modelo de Embeddings: {stats.embedding_model}\n"
+            f"- Categorías encontradas: {', '.join(stats.available_categories)}"
+        )
+        return [TextContent(type="text", text=text)]
+
     else:
         return [TextContent(type="text", text=f"Herramienta desconocida: {name}")]
 
@@ -124,7 +164,7 @@ async def list_resources():
         Resource(
             uri="knowledge-base://stats",
             name="Estadísticas de la Base de Conocimiento",
-            description="Retorna estadísticas de la KB: total de documentos, chunks, última actualización.",
+            description="Expone estadísticas de la KB: documentos, categorías, fecha de actualización y modelo de embeddings.",
             mimeType="application/json",
         )
     ]

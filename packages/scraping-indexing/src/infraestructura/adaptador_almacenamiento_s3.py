@@ -38,9 +38,12 @@ class AdaptadorAlmacenamientoS3(PuertoAlmacenamiento):
 
     async def guardar_html_crudo(self, pagina: Pagina) -> str:
         """Guarda el objeto Pagina como un archivo JSON en S3."""
-        # Sanitizar URL para usarla como llave (basado en el simulado)
-        url_segura = str(pagina.url).replace("/", "_").replace(":", "_")
-        llave = f"{url_segura}.json"
+        # Usar un hash MD5 de la URL para evitar problemas de longitud o caracteres no permitidos en S3/MinIO
+        import hashlib
+        url_hash = hashlib.md5(str(pagina.url).encode('utf-8')).hexdigest()
+        llave = f"{url_hash}.json"
+        
+        logger.info(f"[S3] Guardando: {pagina.url} → {llave}")
         
         # Serializar el modelo a JSON
         contenido_json = pagina.model_dump_json()
