@@ -50,11 +50,55 @@ jobs:
 
     # Se comenta la ejecución de tests si no hemos escrito tests todavía para el agente,
     # pero preparamos el mapeo del secreto desde GitHub
-    - name: Validar Sintaxis Agente (Lint/Check)
+    - name: Ejecutar Pruebas Automatizadas (Agent)
       working-directory: ./apps/agent
       env:
         GEMINI_API_KEY: "test-ci-key-placeholder"
         API_KEY: "test-ci-key"
+        DATABASE_URL: "sqlite+aiosqlite:///./test.db"
       run: |
-        # Verificamos que fastapi importe correctamente (prueba mínima de dependencias rotas)
-        python -c "from src.interfaces.main import app; print('Carga Exitosa de la APP')"
+        python -m pytest tests/
+
+  test-mcp:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Descargar Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Entorno Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Instalar Dependencias (MCP)
+      working-directory: ./apps/mcp-server
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Ejecutar Pruebas Automatizadas (MCP)
+      working-directory: ./apps/mcp-server
+      run: |
+        python -m pytest tests/
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Descargar Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: './apps/frontend/package-lock.json'
+
+    - name: Instalar Dependencias (Frontend)
+      working-directory: ./apps/frontend
+      run: npm install
+
+    - name: Validar Construcción (Frontend)
+      working-directory: ./apps/frontend
+      run: npm run build

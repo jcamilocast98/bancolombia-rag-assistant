@@ -43,6 +43,16 @@ AVAILABLE_TOOLS = [
             },
             "required": ["url"]
         }
+    },
+    {
+        "name": "list_categories",
+        "description": "Lista las categorías disponibles en la base de conocimiento.",
+        "input_schema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "get_knowledge_base_stats",
+        "description": "Obtiene estadísticas técnicas de la base de conocimiento (documentos, fragmentos, modelo).",
+        "input_schema": {"type": "object", "properties": {}}
     }
 ]
 

@@ -28,11 +28,20 @@ class SearchKnowledgeBase:
             embedding = await self.embedding_adapter.generate_query_embedding(query)
             chunks = await self.vector_db.search_by_embedding(embedding, top_k)
             search_method = "vector"
-            logger.info(f"[SearchKB] Búsqueda vectorial exitosa: {len(chunks)} resultados")
+            logger.info(f"[SearchKB] Búsqueda vectorial: {len(chunks)} resultados")
+            
+            # Si la búsqueda vectorial no retorna nada, intentar texto como refuerzo
+            if not chunks:
+                logger.info(f"[SearchKB] Búsqueda vectorial sin resultados. Intentando texto para: '{query}'")
+                chunks = await self.vector_db.search_by_text(query, top_k)
+                search_method = "text"
+                logger.info(f"[SearchKB] Búsqueda por texto (refuerzo): {len(chunks)} resultados")
+                
         except (EmbeddingGenerationError, Exception) as e:
-            logger.warning(f"[SearchKB] Fallback a texto. Razón: {e}")
+            logger.warning(f"[SearchKB] Fallback a texto por error. Razón: {e}")
             chunks = await self.vector_db.search_by_text(query, top_k)
             search_method = "text"
+            logger.info(f"[SearchKB] Búsqueda por texto (fallback): {len(chunks)} resultados")
 
         return SearchResult(
             query=query,

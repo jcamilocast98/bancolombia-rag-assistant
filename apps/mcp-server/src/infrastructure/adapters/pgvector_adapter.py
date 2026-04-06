@@ -73,6 +73,7 @@ class PgVectorAdapter(VectorDBPort):
         try:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(sql, *keywords)
+                logger.info(f"[pgvector] ILIKE search found {len(rows)} results for keywords: {keywords}")
                 return [
                     DocumentChunk(
                         chunk_id=row["chunk_id"],
@@ -127,6 +128,7 @@ class PgVectorAdapter(VectorDBPort):
         try:
             async with pool.acquire() as conn:
                 rows = await conn.fetch(sql, vector_str, top_k)
+                logger.info(f"[pgvector] Vector search found {len(rows)} results")
                 return [
                     DocumentChunk(
                         chunk_id=row["chunk_id"],
@@ -139,6 +141,29 @@ class PgVectorAdapter(VectorDBPort):
                 ]
         except Exception as e:
             raise QueryError(f"Error en búsqueda vectorial: {e}")
+
+    async def get_unique_categories(self) -> List[str]:
+        """Extrae categorías únicas basadas en la estructura de las URLs."""
+        pool = await self._get_pool()
+        sql = "SELECT DISTINCT url FROM chunks"
+        
+        try:
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(sql)
+                urls = [row["url"] for row in rows]
+                
+                categories = set()
+                for url in urls:
+                    parts = url.split("/")
+                    if len(parts) >= 4:
+                        cat = parts[3].replace("-", " ").capitalize()
+                        if cat:
+                            categories.add(cat)
+                
+                return sorted(list(categories))
+        except Exception as e:
+            logger.error(f"[pgvector] Error obteniendo categorías: {e}")
+            return ["General", "Bancolombia"]
 
     async def get_chunks_by_url(self, url: str) -> List[DocumentChunk]:
         """Recupera todos los chunks de una URL, ordenados por posición."""
@@ -182,12 +207,14 @@ class PgVectorAdapter(VectorDBPort):
         try:
             async with pool.acquire() as conn:
                 row = await conn.fetchrow(sql)
+                categories = await self.get_unique_categories()
                 return KnowledgeBaseStats(
                     total_chunks=row["total_chunks"],
                     total_documents=row["total_documents"],
                     last_updated=row["last_updated"],
                     avg_chunk_length=float(row["avg_chunk_length"] or 0),
                     embedding_model=settings.embedding_model,
+                    available_categories=categories
                 )
         except Exception as e:
             raise QueryError(f"Error obteniendo estadísticas: {e}")
