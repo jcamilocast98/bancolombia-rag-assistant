@@ -62,5 +62,5 @@ async def test_generador_embeddings():
     procesados = await generador.incrustar_chunks(chunks)
     assert len(procesados) == 2
     assert procesados[0].embedding is not None
-    assert len(procesados[0].embedding) == 1536
+    assert len(procesados[0].embedding) == 768
     assert procesados[1].embedding is not None
