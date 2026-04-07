@@ -71,7 +71,7 @@ Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
 | Servicio | URL | Documentación / Notas |
 |----------|-----|-------------------------|
 | **Frontend UI** | [https://jucastro-rag.com](https://jucastro-rag.com) | HTTPS habilitado (Let's Encrypt) |
-| **Agent API** | [https://jucastro-rag.com/api/v1](https://jucastro-rag.com/api/v1) | [/docs](https://jucastro-rag.com/api/v1/docs) |
+| **Agent API** | [https://jucastro-rag.com/api/v1/health](https://jucastro-rag.com/api/v1/health) | [Swagger Docs](https://jucastro-rag.com/docs) |
 | **Jaeger UI** | [http://18.191.193.213:16686](http://18.191.193.213:16686) | Trazabilidad OTel |
 | **minio-console** | [http://18.191.193.213:9001](http://18.191.193.213:9001) | S3 local (Admin) |
 
