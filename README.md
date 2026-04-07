@@ -35,8 +35,10 @@ Este asistente virtual implementa un flujo RAG robusto para el segmento **Person
 
 ### Características Principales
 - **Citas Verificables**: Cada respuesta incluye `(URL, Título, Relevancia)`.
+- **Observabilidad Nativa**: Trazabilidad distribuida con OpenTelemetry y Jaeger.
 - **Estadísticas en Vivo**: El agente puede informar sobre el volumen de su base de conocimiento.
 - **Desacoplamiento MCP**: Herramientas de búsqueda separadas del core del agente.
+- **Resiliencia de Búsqueda**: Orquestador optimizado para encadenar múltiples llamadas a herramientas.
 
 ---
 
@@ -66,14 +68,14 @@ Una decisión clave de diseño fue el uso de **SSE** para la comunicación entre
 
 Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
 
-| Servicio | URL | Documentación (Swagger) |
+| Servicio | URL | Documentación / Notas |
 |----------|-----|-------------------------|
-| **Frontend UI** | [http://localhost:4200](http://localhost:4200) | N/A |
+| **Frontend UI** | [http://localhost](http://localhost) | Puerto 80 (Producción) / 4200 (Dev) |
 | **Agent API** | [http://localhost:8000](http://localhost:8000) | [/docs](http://localhost:8000/docs) |
 | **MCP Server** | [http://localhost:8001](http://localhost:8001) | [/docs](http://localhost:8001/docs) |
-| **minio-console** | [http://localhost:9001](http://localhost:9001) | N/A |
-| **pgadmin** | [http://localhost:5050](http://localhost:5050) | N/A |
-| **jaeger-ui** | [http://localhost:16686](http://localhost:16686) | [Trazas OTel] |
+| **minio-console** | [http://localhost:9001](http://localhost:9001) | Almacenamiento S3 local |
+| **pgadmin** | [http://localhost:5050](http://localhost:5050) | Gestión de Base de Datos |
+| **jaeger-ui** | [http://localhost:16686](http://localhost:16686) | **Trazabilidad OTel (Admin Only)** |
 
 ---
 
@@ -110,11 +112,18 @@ cp infrastructure/.env.example infrastructure/.env
 # Edita las variables, especialmente GEMINI_API_KEY
 ```
 
-### 3. Ejecución
+### 3. Ejecución (Local)
 ```bash
 # Desde la raíz del proyecto
 docker-compose -f infrastructure/docker-compose.yml up -d --build
 ```
+
+### 4. Despliegue en AWS EC2 (Monolítico)
+Para desplegar en una sola instancia (mínimo `t3.medium` recomendado):
+1. **Configurar Swap**: Es vital para la estabilidad (mínimo 4GB).
+2. **Reverse Proxy**: El contenedor `frontend` ya está pre-configurado para actuar como proxy hacia el `agent`.
+3. **Security Groups**: Abrir puertos 80 (Web) y 16686 (Jaeger).
+4. **HTTPS (Opcional)**: Se recomienda el uso de Certbot/Let's Encrypt para activar SSL en el puerto 443.
 
 ---
 
@@ -143,6 +152,9 @@ El uso de **Model Context Protocol** permite que el Agente sea agnóstico a las 
 Se implementó un sistema de **One-Shot Prompting** que obliga al LLM a seguir el formato:
 `Fuentes: * (URL, Título, Score de Relevancia)`
 Esto garantiza que el usuario siempre sepa de dónde proviene la información de Bancolombia.
+
+### 4. Reverse Proxy Monolítico
+En el despliegue de producción, el contenedor de Frontend (Nginx) centraliza el tráfico. Las llamadas a `/api/v1` son redirigidas internamente al contenedor del Agente, eliminando problemas de CORS y permitiendo una exposición limpia únicamente por el puerto 80.
 
 ---
 
