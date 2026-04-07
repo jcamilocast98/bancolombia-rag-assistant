@@ -27,8 +27,21 @@ export class ChatComponent implements OnInit {
   loadingService = inject(LoadingService);
   
   messages: Message[] = [];
-  sessionId: string = crypto.randomUUID(); // Generar ID único para la sesión
+  sessionId: string = this.generateUUID(); // Generar ID único para la sesión que funcione en HTTP
   isLoading: boolean = false;
+  
+  private generateUUID(): string {
+    // crypto.randomUUID solo está disponible en contextos seguros (HTTPS o localhost)
+    if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
+      return (crypto as any).randomUUID();
+    }
+    // Fallback para contextos no seguros (HTTP)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
   
   ngOnInit() {
     // Suscribirse al historial local (ya incluye el mensaje de bienvenida)
