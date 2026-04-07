@@ -11,6 +11,7 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN opentelemetry-bootstrap -a install
 
 # Copiar directorios completos
 COPY src/ ./src/
@@ -22,5 +23,5 @@ USER appuser
 
 # Puedes sobrescribir este comando desde docker-compose
 # ej. command: ["python", "-m", "src.indexacion.main"]
-CMD ["python", "-m", "src.scraping.main"]
+CMD ["opentelemetry-instrument", "python", "-m", "src.scraping.main"]
 

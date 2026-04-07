@@ -71,8 +71,27 @@ Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
 | **Frontend UI** | [http://localhost:4200](http://localhost:4200) | N/A |
 | **Agent API** | [http://localhost:8000](http://localhost:8000) | [/docs](http://localhost:8000/docs) |
 | **MCP Server** | [http://localhost:8001](http://localhost:8001) | [/docs](http://localhost:8001/docs) |
-| **MinIO Console**| [http://localhost:9001](http://localhost:9001) | N/A |
-| **pgAdmin** | [http://localhost:5050](http://localhost:5050) | N/A |
+| **minio-console** | [http://localhost:9001](http://localhost:9001) | N/A |
+| **pgadmin** | [http://localhost:5050](http://localhost:5050) | N/A |
+| **jaeger-ui** | [http://localhost:16686](http://localhost:16686) | [Trazas OTel] |
+
+---
+
+## 🔭 Monitoreo y Observabilidad (OpenTelemetry + Jaeger)
+
+El sistema incluye una capa de **Observabilidad Distribuida** para rastrear peticiones en tiempo real a través de todos los microservicios.
+
+- **OpenTelemetry (OTel)**: Los servicios `agent`, `mcp-server` y `scraping-indexing` utilizan auto-instrumentación para capturar trazas de:
+  - Llamadas externas a la API de **Gemini**.
+  - Consultas vectoriales en **PostgreSQL (pgvector)**.
+  - Operaciones en **Redis** y **MinIO**.
+- **Jaeger**: Actúa como el backend de almacenamiento y visualización (UI) de las trazas.
+
+### Cómo analizar una traza:
+1. Interactúa con el chat o inicia un proceso de indexación.
+2. Ingresa a [http://localhost:16686](http://localhost:16686).
+3. Selecciona el servicio (ej. `rag-agent`) y presiona **"Find Traces"**.
+4. Haz clic en una traza para ver el diagrama de cascada y detectar cuellos de botella o errores.
 
 ---
 

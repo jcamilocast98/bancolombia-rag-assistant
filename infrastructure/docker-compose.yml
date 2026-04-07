@@ -71,6 +71,20 @@ services:
       - rag-network
 
   # ============================================
+  # 🔭 Jaeger (Observabilidad y Trazabilidad)
+  # ============================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: rag-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - rag-network
+
+  # ============================================
   # 🤖 Agent (Orquestador LLM + Cliente MCP)
   # Capa: Interfaces → Aplicación → Dominio
   # Puertos: LLMPort, MCPClientPort, MemoryPort
@@ -101,6 +115,10 @@ services:
       - LOG_LEVEL=${AGENT_LOG_LEVEL:-INFO}
       - PYTHONIOENCODING=utf-8
       - PORT=8000
+      - OTEL_SERVICE_NAME=rag-agent
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
     depends_on:
       mcp-server:
         condition: service_healthy
@@ -138,6 +156,10 @@ services:
       # ── Observabilidad ──
       - LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
       - PYTHONIOENCODING=utf-8
+      - OTEL_SERVICE_NAME=rag-mcp-server
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
     depends_on:
       postgres:
         condition: service_healthy
@@ -161,7 +183,7 @@ services:
       dockerfile: Dockerfile
     container_name: rag-scraping
     restart: "no"
-    command: ["python", "-m", "src.pipeline"]
+    command: ["opentelemetry-instrument", "python", "-m", "src.pipeline"]
     environment:
       # ── Puertos del Dominio (nombres alineados con ajustes.py / pydantic-settings) ──
       # Adaptador de Embeddings: AdaptadorEmbeddingsGemini
@@ -187,6 +209,10 @@ services:
       # ── Observabilidad ──
       - LOG_LEVEL=INFO
       - PYTHONIOENCODING=utf-8
+      - OTEL_SERVICE_NAME=rag-scraping
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
     depends_on:
       postgres:
         condition: service_healthy

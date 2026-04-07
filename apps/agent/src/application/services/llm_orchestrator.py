@@ -52,8 +52,8 @@ class LLMOrchestrator:
         working_messages = context_messages.copy()
         
         # Bucle de interacción con LLM para Tool Calling
-        # Reducimos iteraciones para ahorrar cuota de API (2 por pregunta)
-        max_iterations = 2
+        # Aumentamos a 5 para permitir busquedas más complejas y lectura de URLs
+        max_iterations = 5
         iteration = 0
         all_sources = set()
         

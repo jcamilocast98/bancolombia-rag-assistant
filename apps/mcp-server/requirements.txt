@@ -25,3 +25,7 @@ pytest-cov
 
 # ---- Linting ----
 ruff
+
+# ---- Observability ----
+opentelemetry-distro>=0.46b0
+opentelemetry-exporter-otlp>=1.25.0

@@ -9,13 +9,14 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN opentelemetry-bootstrap -a install
 
 # ---- Stage 2: Development ----
 FROM base AS development
 
 COPY . .
 
-CMD ["uvicorn", "src.interfaces.main:app", "--reload", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["opentelemetry-instrument", "uvicorn", "src.interfaces.main:app", "--reload", "--host", "0.0.0.0", "--port", "8001"]
 
 # ---- Stage 3: Production ----
 FROM base AS production
@@ -27,4 +28,4 @@ USER appuser
 
 EXPOSE 8001
 
-CMD ["uvicorn", "src.interfaces.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+CMD ["opentelemetry-instrument", "uvicorn", "src.interfaces.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
