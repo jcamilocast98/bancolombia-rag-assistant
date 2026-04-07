@@ -35,8 +35,10 @@ Este asistente virtual implementa un flujo RAG robusto para el segmento **Person
 
 ### Características Principales
 - **Citas Verificables**: Cada respuesta incluye `(URL, Título, Relevancia)`.
+- **Observabilidad Nativa**: Trazabilidad distribuida con OpenTelemetry y Jaeger.
 - **Estadísticas en Vivo**: El agente puede informar sobre el volumen de su base de conocimiento.
 - **Desacoplamiento MCP**: Herramientas de búsqueda separadas del core del agente.
+- **Resiliencia de Búsqueda**: Orquestador optimizado para encadenar múltiples llamadas a herramientas.
 
 ---
 
@@ -66,14 +68,12 @@ Una decisión clave de diseño fue el uso de **SSE** para la comunicación entre
 
 Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
 
-| Servicio | URL | Documentación (Swagger) |
+| Servicio | URL | Documentación / Notas |
 |----------|-----|-------------------------|
-| **Frontend UI** | [http://localhost:4200](http://localhost:4200) | N/A |
-| **Agent API** | [http://localhost:8000](http://localhost:8000) | [/docs](http://localhost:8000/docs) |
-| **MCP Server** | [http://localhost:8001](http://localhost:8001) | [/docs](http://localhost:8001/docs) |
-| **minio-console** | [http://localhost:9001](http://localhost:9001) | N/A |
-| **pgadmin** | [http://localhost:5050](http://localhost:5050) | N/A |
-| **jaeger-ui** | [http://localhost:16686](http://localhost:16686) | [Trazas OTel] |
+| **Frontend UI** | [https://jucastro-rag.com](https://jucastro-rag.com) | HTTPS habilitado (Let's Encrypt) |
+| **Agent API** | [https://jucastro-rag.com/api/v1](https://jucastro-rag.com/api/v1) | [/docs](https://jucastro-rag.com/api/v1/docs) |
+| **Jaeger UI** | [http://18.191.193.213:16686](http://18.191.193.213:16686) | Trazabilidad OTel |
+| **minio-console** | [http://18.191.193.213:9001](http://18.191.193.213:9001) | S3 local (Admin) |
 
 ---
 
@@ -110,11 +110,18 @@ cp infrastructure/.env.example infrastructure/.env
 # Edita las variables, especialmente GEMINI_API_KEY
 ```
 
-### 3. Ejecución
+### 3. Ejecución (Local)
 ```bash
 # Desde la raíz del proyecto
 docker-compose -f infrastructure/docker-compose.yml up -d --build
 ```
+
+### 4. Despliegue en AWS EC2 (Producción)
+El sistema está desplegado de forma monolítica en AWS:
+1. **URL Principal**: [https://jucastro-rag.com](https://jucastro-rag.com)
+2. **Certificación SSL**: Configurada mediante **Certbot** y Let's Encrypt, con renovación automática.
+3. **Seguridad**: Nginx actúa como Reverse Proxy, redirigiendo el tráfico de puerto 80 a 443 y gestionando el cifrado.
+4. **Resiliencia**: Configuración de **Swap de 4GB** para garantizar la estabilidad de los servicios de IA y Base de Datos.
 
 ---
 
@@ -143,6 +150,9 @@ El uso de **Model Context Protocol** permite que el Agente sea agnóstico a las 
 Se implementó un sistema de **One-Shot Prompting** que obliga al LLM a seguir el formato:
 `Fuentes: * (URL, Título, Score de Relevancia)`
 Esto garantiza que el usuario siempre sepa de dónde proviene la información de Bancolombia.
+
+### 4. Reverse Proxy Monolítico
+En el despliegue de producción, el contenedor de Frontend (Nginx) centraliza el tráfico. Las llamadas a `/api/v1` son redirigidas internamente al contenedor del Agente, eliminando problemas de CORS y permitiendo una exposición limpia únicamente por el puerto 80.
 
 ---
 

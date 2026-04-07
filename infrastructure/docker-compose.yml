@@ -253,9 +253,12 @@ services:
     container_name: rag-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-4200}:80"
+      - "${FRONTEND_PORT:-80}:80"
+      - "443:443"
     environment:
       - API_URL=${FRONTEND_API_URL:-http://localhost:8000}
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       agent:
         condition: service_healthy
