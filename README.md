@@ -70,12 +70,10 @@ Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
 
 | Servicio | URL | Documentación / Notas |
 |----------|-----|-------------------------|
-| **Frontend UI** | [http://localhost](http://localhost) | Puerto 80 (Producción) / 4200 (Dev) |
-| **Agent API** | [http://localhost:8000](http://localhost:8000) | [/docs](http://localhost:8000/docs) |
-| **MCP Server** | [http://localhost:8001](http://localhost:8001) | [/docs](http://localhost:8001/docs) |
-| **minio-console** | [http://localhost:9001](http://localhost:9001) | Almacenamiento S3 local |
-| **pgadmin** | [http://localhost:5050](http://localhost:5050) | Gestión de Base de Datos |
-| **jaeger-ui** | [http://localhost:16686](http://localhost:16686) | **Trazabilidad OTel (Admin Only)** |
+| **Frontend UI** | [https://jucastro-rag.com](https://jucastro-rag.com) | HTTPS habilitado (Let's Encrypt) |
+| **Agent API** | [https://jucastro-rag.com/api/v1](https://jucastro-rag.com/api/v1) | [/docs](https://jucastro-rag.com/api/v1/docs) |
+| **Jaeger UI** | [http://18.191.193.213:16686](http://18.191.193.213:16686) | Trazabilidad OTel |
+| **minio-console** | [http://18.191.193.213:9001](http://18.191.193.213:9001) | S3 local (Admin) |
 
 ---
 
@@ -118,12 +116,12 @@ cp infrastructure/.env.example infrastructure/.env
 docker-compose -f infrastructure/docker-compose.yml up -d --build
 ```
 
-### 4. Despliegue en AWS EC2 (Monolítico)
-Para desplegar en una sola instancia (mínimo `t3.medium` recomendado):
-1. **Configurar Swap**: Es vital para la estabilidad (mínimo 4GB).
-2. **Reverse Proxy**: El contenedor `frontend` ya está pre-configurado para actuar como proxy hacia el `agent`.
-3. **Security Groups**: Abrir puertos 80 (Web) y 16686 (Jaeger).
-4. **HTTPS (Opcional)**: Se recomienda el uso de Certbot/Let's Encrypt para activar SSL en el puerto 443.
+### 4. Despliegue en AWS EC2 (Producción)
+El sistema está desplegado de forma monolítica en AWS:
+1. **URL Principal**: [https://jucastro-rag.com](https://jucastro-rag.com)
+2. **Certificación SSL**: Configurada mediante **Certbot** y Let's Encrypt, con renovación automática.
+3. **Seguridad**: Nginx actúa como Reverse Proxy, redirigiendo el tráfico de puerto 80 a 443 y gestionando el cifrado.
+4. **Resiliencia**: Configuración de **Swap de 4GB** para garantizar la estabilidad de los servicios de IA y Base de Datos.
 
 ---
 
