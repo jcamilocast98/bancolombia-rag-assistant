@@ -14,6 +14,7 @@ Esta carpeta contiene todos los diagramas de arquitectura del proyecto siguiendo
 | 3 | Componentes - MCP Server | `Diagrama de componentes MCP.webp` | MCP Server Core, Tools, Vector DB Accessor |
 | 3 | Componentes - Web Scraping | `Diagrama Componente Web Scraping.webp` | Crawler/Explorer, Content Extractor, Queue, Storage Manager |
 | 3 | Componentes - Indexador | `Diagrama de componentes Indexador.webp` | Data Cleaner, Indexador Orquestador, Text Chunker, Embedding Generator, Vector DB Accessor |
+| AWS | Despliegue Objetivo | `Diagrama de despliegue AWS - Objetivo.webp` | Arquitectura Cloud en AWS con Nginx, SSL, Jaeger y contenedores Docker |
 
 ## Fuente Editable
 

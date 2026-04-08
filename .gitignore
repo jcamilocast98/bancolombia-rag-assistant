@@ -69,3 +69,4 @@ packages/scraping-indexing/data/
 *.db
 PROMPT.md
 .env
+walkthrough.md
