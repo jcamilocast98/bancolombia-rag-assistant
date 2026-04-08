@@ -48,9 +48,10 @@ El proyecto sigue los principios de **Arquitectura Hexagonal** y **Clean Archite
 
 ### Diagramas de Arquitectura
 Los diagramas detallados se encuentran en [documentation/diagramas/](file:///c:/Users/j-cam/repositorios/Prueba%20Banco/documentation/diagramas/):
-- [**Nivel 1: Contexto**](file:///c:/Users/j-cam/repositorios/Prueba%20Banco/documentation/diagramas/Diagrama%20de%20Contexto.webp) - Visión global del sistema.
-- [**Nivel 2: Contenedores**](file:///c:/Users/j-cam/repositorios/Prueba%20Banco/documentation/diagramas/Diagra%20de%20Contenedores.webp) - Interacción entre Apps y Bases de Datos.
-- [**Nivel 3: Componentes**](file:///c:/Users/j-cam/repositorios/Prueba%20Banco/documentation/diagramas/Diagra%20de%20Componentes%20Completos.webp) - Detalle interno de cada microservicio.
+- [**Nivel 1: Contexto**](documentation/diagramas/Diagrama%20de%20Contexto.webp) - Visión global del sistema.
+- [**Nivel 2: Contenedores**](documentation/diagramas/Diagra%20de%20Contenedores.webp) - Interacción entre Apps y Bases de Datos.
+- [**Nivel 3: Componentes**](documentation/diagramas/Diagra%20de%20Componentes%20Completos.webp) - Detalle interno de cada microservicio.
+- [**Despliegue Objetivo AWS**](documentation/diagramas/Diagrama%20de%20despliegue%20AWS%20-%20Objetivo.webp) - Arquitectura final en la nube con Nginx, Reverse Proxy y SSL.
 
 ---
 
@@ -153,6 +154,12 @@ Esto garantiza que el usuario siempre sepa de dónde proviene la información de
 
 ### 4. Reverse Proxy Monolítico
 En el despliegue de producción, el contenedor de Frontend (Nginx) centraliza el tráfico. Las llamadas a `/api/v1` son redirigidas internamente al contenedor del Agente, eliminando problemas de CORS y permitiendo una exposición limpia únicamente por el puerto 80.
+
+### 5. Limitaciones Conocidas
+- **Latencia por Paginación de Memoria (Swap):** Debido al despliegue en una instancia EC2 de bajo tamaño, los límites de la memoria RAM obligan al sistema a procesar datos desde el disco virtual (`Swap`), generando pausas ocasionales en el tiempo de inferencia y respuesta de red del agente.
+- **Capacidad de Trazabilidad:** Al desplegarse el colector e interfaz visual de rastros *Jaeger (All-in-one)* en la misma máquina física, en un ecosistema de producción final con alto tráfico de usuarios obligaría la separación de este servicio hacia otra capa para evitar la degradación del rendimiento.
+- **Limitación de API Tier en Web Scraping:** Las solicitudes continuas para generar embeddings con la familia Gemini pueden chocar en cuotas cortadas (`Rate Limits 429`) si se exceden los límites diarios, para ello se balancea la extración de contenido mediante temporizadores.
+
 
 ---
 
