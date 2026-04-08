@@ -67,7 +67,7 @@ Una decisión clave de diseño fue el uso de **SSE** para la comunicación entre
 
 ## Endpoints y Swagger UI
 
-Al levantar el proyecto con Docker, los siguientes servicios quedan disponibles:
+Al levantar el proyecto con Docker, los siguientes servicios estan disponibles desde AWS, para efectos de la presente prueba:
 
 | Servicio | URL | Documentación / Notas |
 |----------|-----|-------------------------|
